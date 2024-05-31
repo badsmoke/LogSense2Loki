@@ -25,6 +25,8 @@ It is quite simple so that you can easily add additional parsers, metrics endpoi
     * syslog-ng
     * audit (wip)
     * kernel (wip)
+    * dpinger (wip)
+    * opnsense (wip)
 
 
 - **Loki Integration**: Effortlessly forward parsed logs to Grafana Loki for advanced log querying and visualization.

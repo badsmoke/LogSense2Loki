@@ -1,5 +1,5 @@
 import socket
-from parsers import dhcpd_parser, filterlog_parser, unbound_parser, configd_parser, devd_parser, syslogng_parser, lighttpd_parser, cron_parser, audit_parser, kernel_parser, dhclient_parser
+from parsers import dhcpd_parser, filterlog_parser, unbound_parser, configd_parser, devd_parser, syslogng_parser, lighttpd_parser, cron_parser, audit_parser, kernel_parser, dhclient_parser, dpinger_parser
 import loki_client
 from prometheus_client import start_http_server, Counter, Gauge
 import concurrent.futures
@@ -45,7 +45,7 @@ class SyslogServer:
 
         try:
             while True:
-                data, addr = self.sock.recvfrom(4096)
+                data, addr = self.sock.recvfrom(8192)
                 self.RECEIVED_LOGS.inc()
                 # Schreibe die empfangenen Daten in den Buffer
                 self.buffer.write(data)
@@ -143,7 +143,8 @@ class SyslogServer:
                 parsed_log = kernel_parser.parse(log_message)        
             elif ' dhclient ' in log_message:
                 parsed_log = dhclient_parser.parse(log_message) 
-
+            elif ' dpinger ' in log_message:
+                parsed_log = dpinger_parser.parse(log_message) 
                                
             if parsed_log:
                 if not isinstance(parsed_log, dict):
