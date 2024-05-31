@@ -1,7 +1,7 @@
 import re
 
 def parse(log):
-    # Updated Regex-Pattern to capture sequenceId and various statistics patterns
+    # Vereinfachtes Regex-Pattern ohne sequenceId und pid
     pattern = (
         r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) syslog-ng \d+ - \[meta sequenceId="\d+"\] '
         r'(?P<message>.+)'
@@ -56,5 +56,7 @@ def parse_statistics(message):
         match = re.search(pattern, message)
         if match:
             stats[key] = match.group(1)
+        else:
+            stats[key] = "N/A"
     
     return stats
