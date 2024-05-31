@@ -1,21 +1,25 @@
 import re
 
 def parse(log):
-    # Regex-Pattern für filterlog
     pattern = (
         r'<\d+>1\s(?P<timestamp>[\d\-T:+]+)\s(?P<hostname>\S+)\sfilterlog\s(?P<pid>\d+)\s-\s'
         r'\[meta\ssequenceId="(?P<sequenceId>\d+)"\]\s'
         r'(?P<rulenumber>\d+),,,(?P<uuid>[0-9a-fA-F]+),'
         r'(?P<interface>\S+),(?P<reason>\S*),(?P<action>\S*),'
-        r'(?P<direction>\S+),(?P<ipversion>\d+),(?P<tclass>\S*),,\s?'
+        r'(?P<direction>\S+),(?P<ipversion>\d+),'
+        r'(?P<tclass>[^,]*),,\s?'
         r'(?P<ttl>\d+),(?P<ident>\d+),0,(?P<flags>\S*),'
         r'(?P<proto_num>\d+),(?P<proto>\S+),(?P<protolength>\d+),'
-        r'(?P<src_ip>\d+\.\d+\.\d+\.\d+),(?P<dst_ip>\d+\.\d+\.\d+\.\d+),?'
+        r'(?P<src_ip>\d+\.\d+\.\d+\.\d+),(?P<dst_ip>\d+\.\d+\.\d+\.\d+),'
         r'(?:(?P<src_port>\d+),(?P<dst_port>\d+),)?'
-        r'(?P<length>\d+),?.*'
+        r'(?P<length>\d+)?(?:,datalength=(?P<datalength>\d+))?'
     )
 
-    match = re.match(pattern, log)
+    try:
+        match = re.match(pattern, log)
+    except re.error as e:
+        print(f"Regex error: {e}")
+        return None
 
     if match:
         parsed_log = {
@@ -37,9 +41,14 @@ def parse(log):
             'proto': match.group('proto'),
             'protolength': match.group('protolength'),
             'src_ip': match.group('src_ip'),
-            'dst_ip': match.group('dst_ip'),
-            'length': match.group('length')
+            'dst_ip': match.group('dst_ip')
         }
+
+        # Länge wird entweder aus dem 'length' oder 'datalength' Feld übernommen.
+        if match.group('length'):
+            parsed_log['length'] = match.group('length')
+        if match.group('datalength'):
+            parsed_log['datalength'] = match.group('datalength')
 
         # Ports sind optional, daher separat prüfen und hinzufügen.
         if match.group('src_port'):
@@ -50,5 +59,5 @@ def parse(log):
         return parsed_log
     else:
         print(f"No match found! Log: {log}")
-    
+
     return None
