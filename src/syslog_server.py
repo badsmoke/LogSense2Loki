@@ -45,7 +45,7 @@ class SyslogServer:
 
         try:
             while True:
-                data, addr = self.sock.recvfrom(1024)
+                data, addr = self.sock.recvfrom(4096)
                 self.RECEIVED_LOGS.inc()
                 # Schreibe die empfangenen Daten in den Buffer
                 self.buffer.write(data)
