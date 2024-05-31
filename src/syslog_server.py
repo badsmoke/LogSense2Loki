@@ -1,5 +1,5 @@
 import socket
-from parsers import dhcpd_parser, filterlog_parser, unbound_parser, configd_parser, devd_parser, syslogng_parser, lighttpd_parser, cron_parser
+from parsers import dhcpd_parser, filterlog_parser, unbound_parser, configd_parser, devd_parser, syslogng_parser, lighttpd_parser, cron_parser, audit_parser
 import loki_client
 from prometheus_client import start_http_server, Counter, Gauge
 import concurrent.futures
@@ -134,7 +134,9 @@ class SyslogServer:
                 parsed_log = lighttpd_parser.parse(log_message)
             elif ' /usr/sbin/cron ' in log_message:
                 parsed_log = cron_parser.parse(log_message)
-            
+            elif ' audit ' in log_message:
+                parsed_log = audit_parser.parse(log_message)
+                       
             if parsed_log:
                 if not isinstance(parsed_log, dict):
                     print(f"Parsed log is not a dictionary: {parsed_log}")
