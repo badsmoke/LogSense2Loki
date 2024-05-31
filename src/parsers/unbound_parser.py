@@ -1,9 +1,10 @@
 import re
 
 def parse(log):
-    # Entscheiden, ob es ein info-Log ist oder nicht
     if ' info: ' in log:
         return parse_unbound_info_log(log)
+    elif ' error: ' in log:
+        return parse_unbound_error_log(log)
     else:
         return parse_standard_unbound_log(log)
 
@@ -51,5 +52,29 @@ def parse_unbound_info_log(log):
         return parsed_log
     else:
         print(f"Info log not matched! Log: {log}")
+    
+    return None
+
+def parse_unbound_error_log(log):
+    pattern = (
+        r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) unbound \d+ - \[.*?\] '
+        r'\[\d+:[^\]]+\] error: read \(in tcp s\): (?P<error>.+) for (?P<src_ip>\d+\.\d+\.\d+\.\d+) port (?P<port>\d+)'
+    )
+
+    match = re.match(pattern, log)
+    
+    if match:
+        parsed_log = {
+            'timestamp': match.group('timestamp'),
+            'hostname': match.group('hostname'),
+            'service': 'resolver',
+            'log_type': 'error',
+            'error_message': match.group('error'),
+            'src_ip': match.group('src_ip'),
+            'port': match.group('port')
+        }
+        return parsed_log
+    else:
+        print(f"Error log not matched! Log: {log}")
     
     return None
