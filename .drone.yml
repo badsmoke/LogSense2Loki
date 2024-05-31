@@ -10,7 +10,8 @@ steps:
       - tag
       - push
     branch:
-      - main  
+      - main
+      - master   # Füge beide Branches hinzu für Testzwecke
   image: plugins/docker
   pull: if-not-exists
   settings:
@@ -38,7 +39,8 @@ steps:
       - tag
       - push
     branch:
-      - main  
+      - main
+      - master   # Füge beide Branches hinzu für Testzwecke
   pull: if-not-exists
   image: plugins/docker
   settings:
