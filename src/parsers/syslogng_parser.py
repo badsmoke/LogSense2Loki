@@ -1,10 +1,9 @@
 import re
 
 def parse(log):
-    # Aktualisiertes Regex-Pattern mit mehr Flexibilität für message
+    # Updated Regex-Pattern to capture sequenceId and various statistics patterns
     pattern = (
-        r'<\d+>1\s(?P<timestamp>[\d\-T:+\.]+)\s(?P<hostname>\S+)\s'
-        r'syslog-ng\s\d+\s-\s\[meta sequenceId="\d+"\]\s'
+        r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) syslog-ng \d+ - \[meta sequenceId="\d+"\] '
         r'(?P<message>.+)'
     )
 
@@ -42,15 +41,15 @@ def parse(log):
 def parse_statistics(message):
     stats = {}
     patterns = {
-        'eps_last_1h': r"eps_last_1h='[^=]+=([\d\.]+)'",
-        'msg_size_max': r"msg_size_max='[^=]+=([\d\.]+)'",
-        'msg_size_avg': r"msg_size_avg='[^=]+=([\d\.]+)'",
-        'truncated_bytes': r"truncated_bytes='[^=]+=([\d\.]+)'",
-        'eps_since_start': r"eps_since_start='[^=]+=([\d\.]+)'",
-        'memory_usage': r"memory_usage='[^=]+=([\d\.]+)'",
-        'truncated_count': r"truncated_count='[^=]+=([\d\.]+)'",
-        'eps_last_24h': r"eps_last_24h='[^=]+=([\d\.]+)'",
-        'processed': r"processed='[^=]+=([\d\.]+)'"
+        'eps_last_1h': r"eps_last_1h='[^=]+=(\d+)'",
+        'msg_size_max': r"msg_size_max='[^=]+=(\d+)'",
+        'msg_size_avg': r"msg_size_avg='[^=]+=(\d+)'",
+        'truncated_bytes': r"truncated_bytes='[^=]+=(\d+)'",
+        'eps_since_start': r"eps_since_start='[^=]+=(\d+)'",
+        'memory_usage': r"memory_usage='[^=]+=(\d+)'",
+        'truncated_count': r"truncated_count='[^=]+=(\d+)'",
+        'eps_last_24h': r"eps_last_24h='[^=]+=(\d+)'",
+        'processed': r"processed='[^=]+=(\d+)'"
     }
     
     for key, pattern in patterns.items():
