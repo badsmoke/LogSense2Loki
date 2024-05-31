@@ -1,14 +1,14 @@
+import time
 import socket
 from parsers import dhcpd_parser, filterlog_parser, unbound_parser, configd_parser, devd_parser, syslogng_parser, lighttpd_parser, cron_parser, audit_parser, kernel_parser, dhclient_parser, dpinger_parser
 import loki_client
-from prometheus_client import start_http_server, Counter, Gauge
+from prometheus_client import start_http_server, Counter, Gauge, Summary
 import concurrent.futures
 import geoip_helper
 import ipaddress
 import io
 import os
 import queue
-
 
 class SyslogServer:
     
@@ -20,7 +20,10 @@ class SyslogServer:
     QUEUE_SIZE = Gauge('logsense2loki_queue_size', 'Current size of the processing queue')
     QUEUE_MAX_SIZE = Gauge('logsense2loki_queue_max_size', 'Maximum size of the processing queue')
 
-    def __init__(self, host, port, geoip, geoip_db_path, max_queue_size, thread_multiplier,log_batch_size):
+    # Summary metrics for parser processing time
+    PARSER_PROCESSING_TIME = Summary('logsense2loki_parser_processing_seconds', 'Time spent processing logs', ['parser'])
+
+    def __init__(self, host, port, geoip, geoip_db_path, max_queue_size, thread_multiplier, log_batch_size):
         self.host = host
         self.port = port
         self.geoip = geoip
@@ -28,7 +31,7 @@ class SyslogServer:
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 2**24)
         self.sock.bind((self.host, self.port))
         self.buffer = io.BytesIO()
-        #check if geoip enabled
+        # check if geoip enabled
         if geoip:
             self.geoip_helper = geoip_helper.GeoIPHelper(geoip_db_path)
 
@@ -115,36 +118,49 @@ class SyslogServer:
         try:
             # Look for the right parser
             parsed_log = None
+
             if ' dhcpd ' in log_message:
-                parsed_log = dhcpd_parser.parse(log_message)
+                with self.PARSER_PROCESSING_TIME.labels('dhcpd').time():
+                    parsed_log = dhcpd_parser.parse(log_message)
             elif ' filterlog ' in log_message:
-                parsed_log = filterlog_parser.parse(log_message)
-                if self.geoip and parsed_log:
-                    ip_address = parsed_log.get('src_ip')
-                    hostname = parsed_log.get('hostname')
-                    if ip_address and self.is_public_ip(ip_address):
-                        # Start a new thread to process the geolocation
-                        self.executor.submit(self.process_geoip, ip_address, hostname)
+                with self.PARSER_PROCESSING_TIME.labels('filterlog').time():
+                    parsed_log = filterlog_parser.parse(log_message)
+                    if self.geoip and parsed_log:
+                        ip_address = parsed_log.get('src_ip')
+                        hostname = parsed_log.get('hostname')
+                        if ip_address and self.is_public_ip(ip_address):
+                            # Start a new thread to process the geolocation
+                            self.executor.submit(self.process_geoip, ip_address, hostname)
             elif ' unbound ' in log_message:
-                parsed_log = unbound_parser.parse(log_message)
+                with self.PARSER_PROCESSING_TIME.labels('unbound').time():
+                    parsed_log = unbound_parser.parse(log_message)
             elif ' configd.py ' in log_message:
-                parsed_log = configd_parser.parse(log_message)
+                with self.PARSER_PROCESSING_TIME.labels('configd.py').time():
+                    parsed_log = configd_parser.parse(log_message)
             elif ' devd ' in log_message:
-                parsed_log = devd_parser.parse(log_message)
+                with self.PARSER_PROCESSING_TIME.labels('devd').time():
+                    parsed_log = devd_parser.parse(log_message)
             elif ' syslog-ng ' in log_message:
-                parsed_log = syslogng_parser.parse(log_message)
+                with self.PARSER_PROCESSING_TIME.labels('syslog-ng').time():
+                    parsed_log = syslogng_parser.parse(log_message)
             elif ' lighttpd ' in log_message:
-                parsed_log = lighttpd_parser.parse(log_message)
+                with self.PARSER_PROCESSING_TIME.labels('lighttpd').time():
+                    parsed_log = lighttpd_parser.parse(log_message)
             elif ' /usr/sbin/cron ' in log_message:
-                parsed_log = cron_parser.parse(log_message)
+                with self.PARSER_PROCESSING_TIME.labels('cron').time():
+                    parsed_log = cron_parser.parse(log_message)
             elif ' audit ' in log_message:
-                parsed_log = audit_parser.parse(log_message)
+                with self.PARSER_PROCESSING_TIME.labels('audit').time():
+                    parsed_log = audit_parser.parse(log_message)
             elif ' kernel ' in log_message:
-                parsed_log = kernel_parser.parse(log_message)        
+                with self.PARSER_PROCESSING_TIME.labels('kernel').time():
+                    parsed_log = kernel_parser.parse(log_message)        
             elif ' dhclient ' in log_message:
-                parsed_log = dhclient_parser.parse(log_message) 
+                with self.PARSER_PROCESSING_TIME.labels('dhclient').time():
+                    parsed_log = dhclient_parser.parse(log_message) 
             elif ' dpinger ' in log_message:
-                parsed_log = dpinger_parser.parse(log_message) 
+                with self.PARSER_PROCESSING_TIME.labels('dpinger').time():
+                    parsed_log = dpinger_parser.parse(log_message) 
                                
             if parsed_log:
                 if not isinstance(parsed_log, dict):
