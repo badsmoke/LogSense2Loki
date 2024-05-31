@@ -5,12 +5,12 @@ platform:
   arch: amd64
 steps:
 - name: amd64
-  #when:
-  #    event:
-  #      - tag
-  #      - push
-  #    branch:
-  #      - master  
+  when:
+    event:
+      - tag
+      - push
+    branch:
+      - main  
   image: plugins/docker
   pull: if-not-exists
   settings:
@@ -21,10 +21,6 @@ steps:
     registry: 
       from_secret: docker_registry
     repo: docker.badcloud.eu/library/${DRONE_REPO_NAME,,}
-    #auto_tag: true
-    #auto_tag_suffix: linux-amd64
-    custom_dns: [1.0.0.1]
-    dockerfile: Dockerfile
     tags:
         - latest-linux-amd64
         - ${DRONE_TAG:-${DRONE_COMMIT:0:10}}-linux-amd64
@@ -32,18 +28,17 @@ steps:
   
 kind: pipeline
 name: docker-build-arm64
-      
 platform:
   os: linux
   arch: arm64
 steps:
 - name: arm64
-  #when:
-  #    event:
-  #      - tag
-  #      - push
-  #    branch:
-  #      - master  
+  when:
+    event:
+      - tag
+      - push
+    branch:
+      - main  
   pull: if-not-exists
   image: plugins/docker
   settings:
@@ -54,10 +49,6 @@ steps:
     registry: 
       from_secret: docker_registry
     repo: docker.badcloud.eu/library/${DRONE_REPO_NAME,,}
-    #auto_tag: true
-    #auto_tag_suffix: linux-arm64
-    custom_dns: [1.1.1.1]
-    dockerfile: Dockerfile
     tags:
         - latest-linux-arm64
         - ${DRONE_TAG:-${DRONE_COMMIT:0:10}}-linux-arm64
