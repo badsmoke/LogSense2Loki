@@ -56,6 +56,45 @@ def parse_dhcpack(line):
             'interface': ack_match.group('interface')
         }
 
+def parse_dhcprelease(line):
+    dhcprelease_pattern = re.compile(r"<\d+>1 (?P<timestamp>[\d\-T\:\+\.\:]+) (?P<hostname>[\w\-\.]+) .* DHCPRELEASE of (?P<ip>\d+\.\d+\.\d+\.\d+) from (?P<mac>[0-9a-f:]+)( \((?P<client_hostname>.+?)\))? via (?P<interface>\w+) \(found\)")
+    release_match = dhcprelease_pattern.search(line)
+    return {
+        'timestamp': release_match.group('timestamp'),
+        'hostname': release_match.group('hostname'),
+        'type': 'dhcprelease',
+        'service': 'dhcp',
+        'ip': release_match.group('ip'),
+        'mac': release_match.group('mac'),
+        'client_hostname': release_match.group('client_hostname') if release_match.group('client_hostname') else None,
+        'interface': release_match.group('interface')
+    }
+
+def parse_dhcpinform(line):
+    dhcpinform_pattern = re.compile(r"<\d+>1 (?P<timestamp>[\d\-T\:\+\.\:]+) (?P<hostname>[\w\-\.]+) .* DHCPINFORM from (?P<ip>\d+\.\d+\.\d+\.\d+) via (?P<interface>\w+)")
+    inform_match = dhcpinform_pattern.search(line)
+    return {
+        'timestamp': inform_match.group('timestamp'),
+        'hostname': inform_match.group('hostname'),
+        'type': 'dhcpinform',
+        'service': 'dhcp',
+        'ip': inform_match.group('ip'),
+        'interface': inform_match.group('interface')
+    }
+
+def parse_duplicate_uid(line):
+    duplicate_uid_pattern = re.compile(r"<\d+>1 (?P<timestamp>[\d\-T\:\+\.\:]+) (?P<hostname>[\w\-\.]+) .* uid lease (?P<ip>\d+\.\d+\.\d+\.\d+) for client (?P<mac>[0-9a-f:]+) is duplicate on (?P<subnet>[\d\.\/]+)")
+    duplicate_match = duplicate_uid_pattern.search(line)
+    return {
+        'timestamp': duplicate_match.group('timestamp'),
+        'hostname': duplicate_match.group('hostname'),
+        'type': 'duplicate_uid_lease',
+        'service': 'dhcp',
+        'ip': duplicate_match.group('ip'),
+        'mac': duplicate_match.group('mac'),
+        'subnet': duplicate_match.group('subnet')
+    }
+
 def parse_reuse(line):
     reuse_lease_pattern = re.compile(r"<\d+>1 (?P<timestamp>[\d\-T\:\+\.\:]+) (?P<hostname>[\w\-\.]+) .* reuse_lease: lease age (?P<age>\d+) \(secs\) under 25% threshold, reply with unaltered, existing lease for (?P<ip>\d+\.\d+\.\d+\.\d+)")
     reuse_match = reuse_lease_pattern.search(line)
@@ -67,6 +106,16 @@ def parse_reuse(line):
             'ip': reuse_match.group('ip'),
             'age': reuse_match.group('age')
         }
+
+def parse_generic(line):
+    generic_pattern = re.compile(r"<\d+>1 (?P<timestamp>[\d\-T\:\+\.\:]+) (?P<hostname>[\w\-\.]+) .* - \[meta sequenceId=\"\d+\"\] (?P<message>.+)")
+    generic_match = generic_pattern.search(line)
+    return {
+        'timestamp': generic_match.group('timestamp'),
+        'hostname': generic_match.group('hostname'),
+        'service': 'dhcp',
+        'message': generic_match.group('message')
+    }
 
 
 def parse(log):
@@ -80,10 +129,16 @@ def parse(log):
         match=parse_dhcrequest(log)
     elif "DHCPACK" in log:
         match=parse_dhcpack(log)
+    elif "DHCPRELEASE" in log:
+        match = parse_dhcprelease(log) 
+    elif "DHCPINFORM" in log:
+        match = parse_dhcpinform(log)     
+    elif "is duplicate on" in log:
+        match = parse_duplicate_uid(log)                  
     elif "reuse_lease" in log:
         match=parse_reuse(log)
     else:
-        match=None
+        match=parse_generic(log)
 
     #match 
     if match:
