@@ -1,0 +1,113 @@
+kind: pipeline
+name: docker-build-amd64
+platform:
+  os: linux
+  arch: amd64
+steps:
+- name: amd64
+  #when:
+  #    event:
+  #      - tag
+  #      - push
+  #    branch:
+  #      - master  
+  image: plugins/docker
+  pull: if-not-exists
+  settings:
+    password:
+      from_secret: docker_password
+    username:
+      from_secret: docker_username
+    registry: 
+      from_secret: docker_registry
+    repo: docker.badcloud.eu/library/${DRONE_REPO_NAME,,}
+    #auto_tag: true
+    #auto_tag_suffix: linux-amd64
+    custom_dns: [1.0.0.1]
+    dockerfile: Dockerfile
+    tags:
+        - latest-linux-amd64
+        - ${DRONE_TAG:-${DRONE_COMMIT:0:10}}-linux-amd64
+---
+  
+kind: pipeline
+name: docker-build-arm64
+      
+platform:
+  os: linux
+  arch: arm64
+steps:
+- name: arm64
+  #when:
+  #    event:
+  #      - tag
+  #      - push
+  #    branch:
+  #      - master  
+  pull: if-not-exists
+  image: plugins/docker
+  settings:
+    password:
+      from_secret: docker_password
+    username:
+      from_secret: docker_username
+    registry: 
+      from_secret: docker_registry
+    repo: docker.badcloud.eu/library/${DRONE_REPO_NAME,,}
+    #auto_tag: true
+    #auto_tag_suffix: linux-arm64
+    custom_dns: [1.1.1.1]
+    dockerfile: Dockerfile
+    tags:
+        - latest-linux-arm64
+        - ${DRONE_TAG:-${DRONE_COMMIT:0:10}}-linux-arm64
+---
+kind: pipeline
+name: manifest
+platform:
+  os: linux
+  arch: amd64
+steps:
+- name: manifest
+  pull: if-not-exists
+  image: plugins/manifest
+  settings:
+    auto_tag: true
+    password:
+      from_secret: docker_password
+    username:
+      from_secret: docker_username
+    target: docker.badcloud.eu/library/${DRONE_REPO_NAME,,}:${DRONE_TAG:-${DRONE_COMMIT:0:10}}
+    template: docker.badcloud.eu/library/${DRONE_REPO_NAME,,}:${DRONE_TAG:-${DRONE_COMMIT:0:10}}-OS-ARCH
+    platforms:
+      - linux/amd64
+      - linux/arm64
+      
+depends_on:
+- docker-build-amd64
+- docker-build-arm64
+---
+kind: pipeline
+name: manifest-latest
+platform:
+  os: linux
+  arch: amd64
+steps:
+- name: manifest-latest
+  pull: if-not-exists
+  image: plugins/manifest
+  settings:
+    auto_tag: true
+    password:
+      from_secret: docker_password
+    username:
+      from_secret: docker_username
+    target: docker.badcloud.eu/library/${DRONE_REPO_NAME,,}:latest
+    template: docker.badcloud.eu/library/${DRONE_REPO_NAME,,}:latest-OS-ARCH
+    platforms:
+      - linux/amd64
+      - linux/arm64
+      
+depends_on:
+- docker-build-amd64
+- docker-build-arm64

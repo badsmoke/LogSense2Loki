@@ -1,0 +1,16 @@
+version: "2"
+services:
+  LogSense2Loki:
+    image: docker.badcloud.eu/library/logsense2loki
+    ports:
+      - 1540:1540
+      - 8100:8100
+    restart: always
+    volumes:
+      - ./geodb/:/geodb/
+    environment:
+      - SYSLOG_HOST=0.0.0.0
+      - SYSLOG_PORT=1540
+      - LOKI_URL=https://logs.domain.com/api/prom/push
+      - GEOIP_DB_PATH=/geodb/GeoLite2-City.mmdb
+      - ENABLE_GEOIP=False

@@ -1,0 +1,5 @@
+requests
+prometheus_client
+geoip2
+unidecode
+aiohttp
