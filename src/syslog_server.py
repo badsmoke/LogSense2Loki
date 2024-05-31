@@ -25,7 +25,7 @@ class SyslogServer:
         self.port = port
         self.geoip = geoip
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # Einrichten des Sockets für UDP
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 2**22)
+        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 2**24)
         self.sock.bind((self.host, self.port))
         self.buffer = io.BytesIO()
         #check if geoip enabled
@@ -104,9 +104,12 @@ class SyslogServer:
                 parsed_logs.append(parsed_log)
         
         # Sende nur, wenn es geparste Logs gibt
-        if parsed_logs:
-            self.SENDED_LOGS.inc()
+        try:
             loki_client.send_to_loki(parsed_logs)
+            self.SENDED_LOGS.inc(len(parsed_logs))
+        except Exception as e:
+            print(f"Failed to send logs to Loki: {e}")
+            self.FAILED_LOGS.inc(len(parsed_logs))
         
     def process_log(self, log_message):
         try:
