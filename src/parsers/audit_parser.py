@@ -18,7 +18,7 @@ def parse(log):
         }
 
         # Kategorisierung der Logs
-        if "Successful login" in message or "authenticated successfully" in message:
+        if "Successful login" in message or "authenticated successfully" in message or "authentication failure" in message:
             parsed_log['log_type'] = 'login'
             parsed_log.update(parse_login(message))
         elif "changed configuration" in message:
@@ -38,13 +38,20 @@ def parse_login(message):
     login_patterns = {
         'user': r"user '(?P<user>\w+)'",
         'ip': r"from: (?P<ip>\d+\.\d+\.\d+\.\d+)",
-        'webgui_auth': r"user (?P<user>\w+) authenticated successfully for WebGui"
+        'webgui_auth': r"user (?P<user>\w+) authenticated successfully for WebGui",
+        'failure_reason': r"reason: (?P<failure_reason>.+)"
     }
 
     for key, pattern in login_patterns.items():
         match = re.search(pattern, message)
         if match:
             login_info[key] = match.group(key)
+
+    # Bestimmen des Login-Status
+    if "Successful login" in message or "authenticated successfully" in message:
+        login_info['status'] = 'successful'
+    elif "authentication failure" in message:
+        login_info['status'] = 'failed'
 
     return login_info
 
