@@ -195,6 +195,12 @@ To visualize the GeoIP data in Grafana Geomap, follow these steps:
 * add other endpoints
 
 
+## Recommended Project
+
+In addition to my project, I would like to recommend the project [opnsense-exporter](https://github.com/AthennaMind/opnsense-exporter) – it complements my project well and offers many useful features!
+
+
+
 ## License
 
 This project is licensed under the MIT License.
