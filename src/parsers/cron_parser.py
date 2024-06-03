@@ -1,7 +1,7 @@
 import re
 
 def parse(log):
-    # Regex-Pattern für cron-Logs
+    # Regex pattern for cron logs
     pattern = (
         r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) /usr/sbin/cron \d+ - \[[^\]]+\] '
         r'\((?P<user>\S+)\) CMD \((?P<command>.+?)\)'

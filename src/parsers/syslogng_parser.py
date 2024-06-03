@@ -1,7 +1,7 @@
 import re
 
 def parse(log):
-    # Vereinfachtes Regex-Pattern ohne sequenceId und pid
+
     pattern = (
         r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) syslog-ng \d+ - \[meta sequenceId="\d+"\] '
         r'(?P<message>.+)'
@@ -18,7 +18,7 @@ def parse(log):
             'message': message
         }
 
-        # Unterscheidung der Logs
+        
         if "Log statistics" in message:
             parsed_log['log_type'] = 'statistics'
             parsed_log.update(parse_statistics(message))

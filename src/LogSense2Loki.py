@@ -22,7 +22,7 @@ def main():
 
     server = syslog_server.SyslogServer(syslog_host, syslog_port, geoip, geoip_db_path, max_queue_size, thread_multiplier,log_batch_size)
     
-    # Starte mehrere Threads für die Bearbeitung aus der Warteschlange
+    # Start multiple threads for processing from the queue
     for _ in range(os.cpu_count() * queue_thread_multiplier):
         t = threading.Thread(target=server.process_log_queue, daemon=True)
         t.start()

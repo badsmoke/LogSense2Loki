@@ -17,7 +17,7 @@ def parse(log):
             'message': message
         }
 
-        # Kategorisierung der Logs
+        # Categorization of the logs
         if "Successful login" in message or "authenticated successfully" in message or "authentication failure" in message:
             parsed_log['log_type'] = 'login'
             parsed_log.update(parse_login(message))
@@ -47,7 +47,7 @@ def parse_login(message):
         if match:
             login_info[key] = match.group(key)
 
-    # Bestimmen des Login-Status
+    # Determining the login status
     if "Successful login" in message or "authenticated successfully" in message:
         login_info['status'] = 'successful'
     elif "authentication failure" in message:

@@ -11,7 +11,7 @@ class GeoIPHelper:
             city = response.city.name
             country = response.country.name
 
-            # Stadt- und Ländernamen mit Umlauten umschreiben
+            # Rewrite city and country names with umlauts
             if city:
                 city = unidecode(city)
             if country:

@@ -27,7 +27,7 @@ class SyslogServer:
         self.host = host
         self.port = port
         self.geoip = geoip
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # Einrichten des Sockets für UDP
+        self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # Set up the socket for UDP
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 2**24)
         self.sock.bind((self.host, self.port))
         self.buffer = io.BytesIO()
@@ -36,7 +36,7 @@ class SyslogServer:
             self.geoip_helper = geoip_helper.GeoIPHelper(geoip_db_path)
 
         self.executor = concurrent.futures.ThreadPoolExecutor(max_workers=min(32, os.cpu_count() * thread_multiplier))
-        self.queue = queue.Queue(maxsize=max_queue_size)  # Setzen der Warteschlangen-Größe
+        self.queue = queue.Queue(maxsize=max_queue_size)  # Setting the queue size
         self.log_batch_size = log_batch_size
         self.QUEUE_MAX_SIZE.set(max_queue_size)
     
@@ -50,25 +50,25 @@ class SyslogServer:
             while True:
                 data, addr = self.sock.recvfrom(8192)
                 self.RECEIVED_LOGS.inc()
-                # Schreibe die empfangenen Daten in den Buffer
+                # Write the received data to the buffer
                 self.buffer.write(data)
 
-                # Setze den Lesezeiger auf den Anfang des Buffers
+                # Set the read pointer to the beginning of the buffer
                 self.buffer.seek(0)
 
-                # Versuche, den Inhalt des Buffers zu decodieren
+                # Attempts to decode the contents of the buffer
                 try:
                     decoded_data = self.buffer.read().decode('utf-8')
                 except UnicodeDecodeError:
-                    # Wenn ein Decodierungsfehler auftritt, setze den Lesezeiger zurück und warte auf mehr Daten
+                    # If a decoding error occurs, reset the read pointer and wait for more data
                     print("UnicodeDecodeError: Invalid data received")
                     self.buffer.seek(0, io.SEEK_END)
                     continue
 
-                # Verarbeite vollständige Zeilen
+                # Process complete lines
                 lines = decoded_data.split('\n')
 
-                # Die letzte unvollständige Zeile bleibt im Buffer
+                # The last incomplete line remains in the buffer
                 self.buffer = io.BytesIO()
                 self.buffer.write(lines.pop().encode('utf-8'))
 
@@ -93,9 +93,9 @@ class SyslogServer:
             while not self.queue.empty():
                 logs_to_process.append(self.queue.get())
                 self.queue.task_done()
-                if len(logs_to_process) >= self.log_batch_size:  # Prozessiere Batches von 100 Logs
+                if len(logs_to_process) >= self.log_batch_size:  
                     break
-            # Jetzt die Logs im Batch verarbeiten
+            # 
             self.process_logs_batch(logs_to_process)
             self.QUEUE_SIZE.set(self.queue.qsize())
 
@@ -106,7 +106,7 @@ class SyslogServer:
             if parsed_log:
                 parsed_logs.append(parsed_log)
         
-        # Sende nur, wenn es geparste Logs gibt
+        # Send only if there are parsed logs
         try:
             loki_client.send_to_loki(parsed_logs)
             self.SENDED_LOGS.inc(len(parsed_logs))

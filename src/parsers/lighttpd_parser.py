@@ -1,7 +1,7 @@
 import re
 
 def parse(log):
-    # Regex-Pattern für lighttpd-Logs
+    # Regex pattern for lighttpd logs
     pattern = (
         r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) lighttpd \d+ - \[[^\]]+\] '
         r'(?P<client_ip>\d+\.\d+\.\d+\.\d+) (?P<target_host>\S+) - \[(?P<request_time>[^\]]+)\] '

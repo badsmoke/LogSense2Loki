@@ -9,7 +9,7 @@ def parse(log):
         return parse_standard_unbound_log(log)
 
 def parse_standard_unbound_log(log):
-    # Einfaches und präzises Regex-Pattern für Standard-Unbound-Logs ohne pid
+    
     pattern = (
         r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) unbound \d+ - \[.*?\] '
         r'\[(?P<identifier_1>\d+):(?P<identifier_2>[^\]]+)\] query: (?P<src_ip>\d+\.\d+\.\d+\.\d+) '

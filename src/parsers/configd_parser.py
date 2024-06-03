@@ -1,7 +1,7 @@
 import re
 
 def parse(log):
-    # Bereinigtes Regex-Pattern ohne sequenceId und pid
+    
     pattern = (
         r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) configd\.py \d+ - \[[^\]]+\] '
         r'(\[(?P<uuid>[\da-fA-F-]+)\] )?(?P<message>.+)'

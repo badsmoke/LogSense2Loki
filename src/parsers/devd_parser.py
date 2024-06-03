@@ -1,7 +1,7 @@
 import re
 
 def parse(log):
-    # Vereinfachtes Regex-Pattern ohne sequenceId und pid
+   
     pattern = (
         r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) devd \d+ - \[[^\]]+\] '
         r'(?P<message>.+)'

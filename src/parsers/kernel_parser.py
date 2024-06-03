@@ -1,7 +1,7 @@
 import re
 
 def parse(log):
-    # Vereinfachtes Regex-Pattern ohne sequenceId und pid
+
     pattern = (
         r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) devd \d+ - \[[^\]]+\] '
         r'(?P<message>.+)'
@@ -26,7 +26,7 @@ def parse(log):
 import re
 
 def parse(log):
-    # Aktualisiertes Regex-Pattern
+
     pattern = (
         r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) kernel - - \[meta sequenceId="\d+"\] (?P<message>.+)'
     )
@@ -41,7 +41,7 @@ def parse(log):
             'message': match.group('message')
         }
 
-        # Unterscheidung von ARP-Logs
+        # Differentiation of ARP logs
         if match.group('message').startswith("arp:"):
             parsed_log['log_type'] = 'arp'
             parsed_log.update(parse_arp_message(match.group('message')))

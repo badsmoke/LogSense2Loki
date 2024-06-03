@@ -44,13 +44,13 @@ def parse(log):
             'dst_ip': match.group('dst_ip')
         }
 
-        # Länge wird entweder aus dem 'length' oder 'datalength' Feld übernommen.
+        # Length is taken from either the 'length' or 'datalength' field.
         if match.group('length'):
             parsed_log['length'] = match.group('length')
         if match.group('datalength'):
             parsed_log['datalength'] = match.group('datalength')
 
-        # Ports sind optional, daher separat prüfen und hinzufügen.
+        # Ports are optional, so check and add them separately.
         if match.group('src_port'):
             parsed_log['src_port'] = match.group('src_port')
         if match.group('dst_port'):

@@ -1,7 +1,7 @@
 version: "2"
 services:
   LogSense2Loki:
-    image: docker.badcloud.eu/library/logsense2loki
+    image: badsmoke/logsense2loki:latest
     ports:
       - 1540:1540
       - 8100:8100
