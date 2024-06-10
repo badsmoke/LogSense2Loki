@@ -100,7 +100,7 @@ Configure LogSense2Loki using the following environment variables:
 - `GEOIP_DB_PATH`: Path to the MaxMind GeoIP database (default: `/geo/db/GeoLite2-City.mmdb`)
 - `ENABLE_GEOIP`: Enable (`True`) or disable (`False`) GeoIP lookups (default: `False`)
 - `THREAD_MULTIPLIER` : Multiplikator of the Worker-Threads (default: `4`)
-- `QUEUE_SIZE` : Queue Size (default: `1000`)
+- `QUEUE_SIZE` : Queue Size (default: `10000`)
 - `QUEUE_THREAD_MULTIPLIER` : Multiplikator of the  Queue Threads (default: `4`)
 - `JOB_LABEL` : loki job label (default: `opnsense-parser-test`)
 - `LOG_BATCH_SIZE` : to sending batch size (default: `100`)
@@ -114,7 +114,7 @@ LOKI_URL = 'https://logs.domain.com/api/prom/push'
 GEOIP_DB_PATH = "/geo/db/GeoLite2-City.mmdb"
 ENABLE_GEOIP = False
 THREAD_MULTIPLIER = 2  
-QUEUE_SIZE = 1000  
+QUEUE_SIZE = 10000  
 QUEUE_THREAD_MULTIPLIER = 4
 JOB_LABEL="opnsense-parser-test"
 LOG_BATCH_SIZE=100

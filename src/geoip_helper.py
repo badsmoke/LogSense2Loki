@@ -1,6 +1,6 @@
 import geoip2.database
 from unidecode import unidecode
-import geohash
+import pygeohash as geohash
 
 class GeoIPHelper:
     def __init__(self, geoip_db_path):
