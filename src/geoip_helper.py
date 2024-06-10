@@ -12,7 +12,7 @@ class GeoIPHelper:
             city = response.city.name
             country = response.country.name
             country_code = response.country.iso_code
-            geohash_code = geohash.encode(latitude, longitude)
+            geohash_code = geohash.encode(response.location.latitude, response.location.longitude)
             organization = response.traits.organization
 
             # Rewrite city and country names with umlauts
