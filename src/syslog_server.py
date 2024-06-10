@@ -128,9 +128,13 @@ class SyslogServer:
                     if self.geoip and parsed_log:
                         ip_address = parsed_log.get('src_ip')
                         hostname = parsed_log.get('hostname')
+                        action = parsed_log.get('action')
+                        direction = parsed_log.get('direction')
+                        dst_port = parsed_log.get('dst_port')
+
                         if ip_address and self.is_public_ip(ip_address):
                             # Start a new thread to process the geolocation
-                            self.executor.submit(self.process_geoip, ip_address, hostname)
+                            self.executor.submit(self.process_geoip, ip_address, hostname,action,direction,dst_port)
             elif ' unbound ' in log_message:
                 with self.PARSER_PROCESSING_TIME.labels('unbound').time():
                     parsed_log = unbound_parser.parse(log_message)
@@ -185,7 +189,7 @@ class SyslogServer:
             print(f"Invalid IP address: {ip} - {e}")
             return False
 
-    def process_geoip(self, ip_address, hostname):
+    def process_geoip(self, ip_address, hostname,action,direction,dst_port):
         try:
             geo_info = self.geoip_helper.get_city(ip_address)
             geo_log = {
@@ -195,7 +199,14 @@ class SyslogServer:
                 "city": geo_info["city"],
                 "country": geo_info["country"],
                 "latitude": geo_info["latitude"],
-                "longitude": geo_info["longitude"]
+                "longitude": geo_info["longitude"],
+                "country_code": geo_info["country_code"],
+                "geohash": geo_info["geohash"],
+                "organization": geo_info["organization"],
+                "action": action,
+                "direction": direction,
+                "dst_port": dst_port
+
             }
             loki_client.send_to_loki([geo_log])
         except Exception as e:
