@@ -191,8 +191,10 @@ To visualize the GeoIP data in Grafana Geomap, follow these steps:
 
 * ~~add geoip?~~
 * check filterlog block/pass in/out 
-* add kernel parser
+* add parser
 * add other endpoints
+* add geoip database site container "maxmindinc/geoipupdate:v4.10"
+
 
 
 ## Recommended Project
