@@ -188,11 +188,15 @@ class SyslogServer:
 
     def process_geoip(self, ip_address, parsed_log):
 
+
+        #or all? some values are greate for creating dashboard filter
         hostname = parsed_log.get('hostname')
         action = parsed_log.get('action')
         direction = parsed_log.get('direction')
         dst_port = parsed_log.get('dst_port')
         proto = parsed_log.get('proto')
+        rulenumber = parsed_log.get('rulenumber')
+        interface = parsed_log.get('interface')
         try:
             geo_info = self.geoip_helper.get_city(ip_address)
             geo_log = {
@@ -209,7 +213,9 @@ class SyslogServer:
                 "action": action,
                 "direction": direction,
                 "dst_port": dst_port,
-                "proto":proto
+                "proto":proto,
+                "rulenumber":rulenumber,
+                "interface":interface
 
             }
             loki_client.send_to_loki([geo_log])
