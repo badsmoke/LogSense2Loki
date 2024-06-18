@@ -177,7 +177,7 @@ class SyslogServer:
                 return None
 
         except Exception as e:
-            print(f"Failed to process log: {e}")
+            print(f"Failed to process log: {e}",log_message)
             self.FAILED_LOGS.inc()
             return None
 
