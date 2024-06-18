@@ -1,9 +1,9 @@
 import re
 
 def parse(log):
-    
+   
     pattern = (
-        r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) dhclient \d+ - \[[^\]]+\] '
+        r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) api \d+ - \[[^\]]+\] '
         r'(?P<message>.+)'
     )
 
@@ -13,7 +13,7 @@ def parse(log):
         parsed_log = {
             'timestamp': match.group('timestamp'),
             'hostname': match.group('hostname'),
-            'service': 'dhclient',
+            'service': 'api',
             'message': match.group('message')
         }
 

@@ -144,6 +144,16 @@ services:
       - GEOIP_DB_PATH=/geo/db/GeoLite2-City.mmdb
       - ENABLE_GEOIP=False
       - JOB_LABEL="opnsense-parser-test"
+  geoip:
+        image: maxmindinc/geoipupdate:v4.10
+        restart: unless-stopped
+        environment:
+          - GEOIPUPDATE_ACCOUNT_ID=
+          - GEOIPUPDATE_LICENSE_KEY=
+          - GEOIPUPDATE_EDITION_IDS=GeoLite2-City
+          - GEOIPUPDATE_FREQUENCY=168
+        volumes:
+          - ./geodb:/usr/share/GeoIP      
 ```
 
 To run LogSense2Loki with the above configuration, use:
@@ -193,7 +203,8 @@ To visualize the GeoIP data in Grafana Geomap, follow these steps:
 * check filterlog block/pass in/out 
 * add parser
 * add other endpoints
-* add geoip database site container "maxmindinc/geoipupdate:v4.10"
+* ~~add geoip database site container "maxmindinc/geoipupdate:v4.10"~~
+* with some logs the end of the line is not recognized, so there are problems with parsing
 
 
 

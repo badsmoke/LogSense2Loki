@@ -1,6 +1,6 @@
 import time
 import socket
-from parsers import dhcpd_parser, filterlog_parser, unbound_parser, configd_parser, devd_parser, syslogng_parser, lighttpd_parser, cron_parser, audit_parser, kernel_parser, dhclient_parser, dpinger_parser
+from parsers import dhcpd_parser, filterlog_parser, unbound_parser, configd_parser, devd_parser, syslogng_parser, lighttpd_parser, cron_parser, audit_parser, kernel_parser, dhclient_parser, dpinger_parser, api_parser
 import loki_client
 from prometheus_client import start_http_server, Counter, Gauge, Summary
 import concurrent.futures
@@ -162,7 +162,10 @@ class SyslogServer:
             elif ' dpinger ' in log_message:
                 with self.PARSER_PROCESSING_TIME.labels('dpinger').time():
                     parsed_log = dpinger_parser.parse(log_message) 
-                               
+            elif ' api ' in log_message:
+                with self.PARSER_PROCESSING_TIME.labels('api').time():
+                    parsed_log = dpinger_parser.parse(log_message) 
+
             if parsed_log:
                 if not isinstance(parsed_log, dict):
                     print(f"Parsed log is not a dictionary: {parsed_log}")
