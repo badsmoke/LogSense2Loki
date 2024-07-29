@@ -13,7 +13,7 @@ import sys
 def main():
     syslog_host = os.getenv('SYSLOG_HOST', config.SYSLOG_HOST)
     syslog_port = int(os.getenv('SYSLOG_PORT', config.SYSLOG_PORT))
-    geoip = os.getenv('ENABLE_GEOIP', config.ENABLE_GEOIP) == 'True'
+    geoip = os.getenv('ENABLE_GEOIP', str(config.ENABLE_GEOIP)).lower() != 'false'
     geoip_db_path = os.getenv('GEOIP_DB_PATH', config.GEOIP_DB_PATH)
     max_queue_size = int(os.getenv('QUEUE_SIZE', config.QUEUE_SIZE))
     thread_multiplier = int(os.getenv('THREAD_MULTIPLIER', config.THREAD_MULTIPLIER))

@@ -23,4 +23,4 @@ services:
           - GEOIPUPDATE_EDITION_IDS=GeoLite2-City
           - GEOIPUPDATE_FREQUENCY=168
         volumes:
-          - ./geodb:/usr/share/GeoIP      
+          - ./geodb:/usr/share/GeoIP
