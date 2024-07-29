@@ -2,3 +2,4 @@
 __pycache__
 parsers/__pycache__
 profiling_results.txt
+docker-compose.yml
