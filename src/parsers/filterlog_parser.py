@@ -7,7 +7,7 @@ def parse(log):
         r'(?P<rulenumber>\d+),,,(?P<uuid>[0-9a-fA-F]+),'
         r'(?P<interface>\S+),(?P<reason>\S*),(?P<action>\S*),'
         r'(?P<direction>\S+),(?P<ipversion>\d+),'
-        r'(?P<tclass>[^,]*),,\s?'
+        r'(?P<tclass>[^,]*)(?:,,)?\s?'
         r'(?P<ttl>\d+),(?P<ident>\d+),0,(?P<flags>\S*),'
         r'(?P<proto_num>\d+),(?P<proto>\S+),(?P<protolength>\d+),'
         r'(?P<src_ip>\d+\.\d+\.\d+\.\d+),(?P<dst_ip>\d+\.\d+\.\d+\.\d+),'
