@@ -1,6 +1,6 @@
 services:
   LogSense2Loki:
-    image: docker.badcloud.eu/library/logsense2loki:latest
+    image: badsmoke/logsense2loki:latest
     ports:
       - 1540:1540/udp
       - 8100:8100
@@ -10,7 +10,7 @@ services:
     environment:
       - SYSLOG_HOST=0.0.0.0
       - SYSLOG_PORT=1540
-      - LOKI_URL=https://logs.zigpos.com/api/prom/push
+      - LOKI_URL=https://logs.domain.com/api/prom/push
       - GEOIP_DB_PATH=/geodb/GeoLite2-City.mmdb
       - ENABLE_GEOIP=False
   geoip:
