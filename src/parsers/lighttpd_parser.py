@@ -1,19 +1,20 @@
 import re
 
-def parse(log):
+def parse_log(log):
     # Regex pattern für die Standard lighttpd Logs
     standard_pattern = (
         r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) lighttpd \d+ - \[meta sequenceId="\d+"\] '
-        r'(?P<client_ip>\d+\.\d+\.\d+\.\d+) - - \[(?P<request_time>[^\]]+)\] '
-        r'"(?P<method>\S+) (?P<path>\S+) (?P<protocol>HTTP/\d+\.\d+)" (?P<status_code>\d+) (?P<response_size>\d+) '
-        r'"(?P<referer>[^\"]*)" "(?P<user_agent>[^\"]*)"'
+        r'(?P<client_ip>\d+\.\d+\.\d+\.\d+) (?P<target_host>\S+) - '
+        r'\[(?P<request_time>[^\]]+)\] "(?P<method>\S+) (?P<path>\S+) (?P<protocol>HTTP/\d+\.\d+)" '
+        r'(?P<status_code>\d+) (?P<response_size>\d+) "(?P<referer>[^\"]*)" "(?P<user_agent>[^\"]*)"'
     )
 
     # Regex pattern für PRI-Requests
     pri_pattern = (
         r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) lighttpd \d+ - \[meta sequenceId="\d+"\] '
-        r'(?P<client_ip>\d+\.\d+\.\d+\.\d+) - - \[(?P<request_time>[^\]]+)\] '
-        r'"PRI \* (?P<protocol>HTTP/\d+\.\d+)" (?P<status_code>\d+) - "-" "-"'
+        r'(?P<client_ip>\d+\.\d+\.\d+\.\d+) \S+ - '
+        r'\[(?P<request_time>[^\]]+)\] "PRI \* (?P<protocol>HTTP/\d+\.\d+)" '
+        r'(?P<status_code>\d+) - "-" "-"'
     )
 
     # Regex pattern für Server Start/Stop Logs
@@ -22,7 +23,7 @@ def parse(log):
         r'\(.*?\) (?P<action>(server started|server stopped|graceful shutdown started)\s*\(lighttpd/[^\)]+\))'
     )
 
-    # Überprüfen, ob es ein Standard-Log ist
+    # Standard-Logs parsen
     standard_match = re.match(standard_pattern, log)
     if standard_match:
         return {
@@ -30,6 +31,7 @@ def parse(log):
             'hostname': standard_match.group('hostname'),
             'service': 'lighttpd',
             'client_ip': standard_match.group('client_ip'),
+            'target_host': standard_match.group('target_host'),
             'request_time': standard_match.group('request_time'),
             'method': standard_match.group('method'),
             'path': standard_match.group('path'),
@@ -40,7 +42,7 @@ def parse(log):
             'user_agent': standard_match.group('user_agent')
         }
 
-    # Überprüfen, ob es ein PRI-Request-Log ist
+    # PRI-Requests parsen
     pri_match = re.match(pri_pattern, log)
     if pri_match:
         return {
@@ -56,7 +58,7 @@ def parse(log):
             'user_agent': '-'
         }
 
-    # Überprüfen, ob es sich um einen Server-Aktions-Log handelt
+    # Serveraktionen parsen
     server_action_match = re.match(server_action_pattern, log)
     if server_action_match:
         return {
@@ -67,5 +69,4 @@ def parse(log):
         }
 
     print(f"No match found! Log: {log}")
-    
     return None
