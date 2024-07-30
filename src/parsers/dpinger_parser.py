@@ -1,7 +1,8 @@
 import re
 
-def parse_dpinger(log):
+def parse(log):
     pattern = (
+        r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) dpinger \d+ - '
         r'ALERT: (?P<interface>\S+) '
         r'\(Addr: (?P<addr>[\d\.]+) '
         r'Alarm: (?P<alarm>\S+) '
@@ -15,6 +16,9 @@ def parse_dpinger(log):
     
     if match:
         parsed_log = {
+            'timestamp': match.group('timestamp'),
+            'hostname': match.group('hostname'),
+            'service': 'dpinger',
             'interface': match.group('interface'),
             'addr': match.group('addr'),
             'alarm': match.group('alarm'),

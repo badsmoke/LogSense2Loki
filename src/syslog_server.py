@@ -1,6 +1,6 @@
 import time
 import socket
-from parsers import dhcpd_parser, filterlog_parser, unbound_parser, configd_parser, devd_parser, syslogng_parser, lighttpd_parser, cron_parser, audit_parser, kernel_parser, dhclient_parser, dpinger_parser, api_parser
+from parsers import dhcpd_parser, filterlog_parser, unbound_parser, configd_parser, devd_parser, syslogng_parser, lighttpd_parser, cron_parser, audit_parser, kernel_parser, dhclient_parser, dpinger_parser, api_parser, config_parser,configctl_parser,opnsense_parser,rule_updater_parser
 import loki_client
 from prometheus_client import start_http_server, Counter, Gauge, Summary
 import concurrent.futures
@@ -164,7 +164,19 @@ class SyslogServer:
                     parsed_log = dpinger_parser.parse(log_message) 
             elif ' api ' in log_message:
                 with self.PARSER_PROCESSING_TIME.labels('api').time():
-                    parsed_log = dpinger_parser.parse(log_message) 
+                    parsed_log = api_parser.parse(log_message) 
+            elif ' config ' in log_message:
+                with self.PARSER_PROCESSING_TIME.labels('config').time():
+                    parsed_log = config_parser.parse(log_message)        
+            elif ' configctl ' in log_message:
+                with self.PARSER_PROCESSING_TIME.labels('configctl').time():
+                    parsed_log = configctl_parser.parse(log_message) 
+            elif ' opnsense ' in log_message:
+                with self.PARSER_PROCESSING_TIME.labels('opnsense').time():
+                    parsed_log = opnsense_parser.parse(log_message) 
+            elif ' rule-updater.py  ' in log_message:
+                with self.PARSER_PROCESSING_TIME.labels('rule_updater').time():
+                    parsed_log = rule_updater_parser.parse(log_message) 
 
             if parsed_log:
                 if not isinstance(parsed_log, dict):
