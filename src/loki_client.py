@@ -6,6 +6,10 @@ from datetime import datetime
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 from requests.auth import HTTPBasicAuth
+import urllib3
+
+
+
 
 # Global session to maintain keep-alive connections
 session = requests.Session()
@@ -35,6 +39,11 @@ def send_to_loki(logs):
     # Basic Auth credentials
     loki_username = os.getenv('LOKI_AUTH_USERNAME')
     loki_password = os.getenv('LOKI_AUTH_PASSWORD')
+    # SSL verification option
+    verify_ssl = os.getenv('LOKI_AUTH_VERIFY_SSL', 'True').lower() == 'true'
+    if not verify_ssl:
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
     auth = HTTPBasicAuth(loki_username, loki_password) if loki_username and loki_password else None
 
     for log in logs:
@@ -57,7 +66,7 @@ def send_to_loki(logs):
     data = json.dumps({"streams": loki_entries})
     loki_url = os.getenv('LOKI_URL', config.LOKI_URL)
 
-    response = session.post(loki_url, headers=headers, data=data, auth=auth)
+    response = session.post(loki_url, headers=headers, data=data, auth=auth, verify=verify_ssl)
     
     if response.status_code != 204:
         print(response.status_code)

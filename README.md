@@ -106,6 +106,7 @@ Configure LogSense2Loki using the following environment variables:
 - `LOG_BATCH_SIZE` : to sending batch size (default: `100`)
 - `LOKI_AUTH_USERNAME` : basic auth username
 - `LOKI_AUTH_PASSWORD` : basic auth password
+- `LOKI_AUTH_VERIFY_SSL` : certificate validation
 
 ### Sample Configuration File (`config.py`)
 
