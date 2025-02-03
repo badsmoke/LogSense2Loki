@@ -5,6 +5,7 @@ import os
 from datetime import datetime
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+from requests.auth import HTTPBasicAuth
 
 # Global session to maintain keep-alive connections
 session = requests.Session()
@@ -30,6 +31,11 @@ def send_to_loki(logs):
     headers = {'Content-Type': 'application/json'}
     job_label = os.getenv('JOB_LABEL', config.JOB_LABEL)
     loki_entries = []
+    
+    # Basic Auth credentials
+    loki_username = os.getenv('LOKI_AUTH_USERNAME')
+    loki_password = os.getenv('LOKI_AUTH_PASSWORD')
+    auth = HTTPBasicAuth(loki_username, loki_password) if loki_username and loki_password else None
 
     for log in logs:
         # Safety check to ensure log is a dictionary
@@ -38,7 +44,7 @@ def send_to_loki(logs):
             continue  # Skip invalid logs
         
         loki_entry = {
-            "labels": '{job="%s",service="%s", hostname="%s"}' % (job_label,log["service"],log["hostname"]),
+            "labels": '{job="%s",service="%s", hostname="%s"}' % (job_label, log["service"], log["hostname"]),
             "entries": [
                 {
                     "ts": datetime.utcnow().isoformat("T") + "Z",
@@ -51,7 +57,7 @@ def send_to_loki(logs):
     data = json.dumps({"streams": loki_entries})
     loki_url = os.getenv('LOKI_URL', config.LOKI_URL)
 
-    response = session.post(loki_url, headers=headers, data=data)
+    response = session.post(loki_url, headers=headers, data=data, auth=auth)
     
     if response.status_code != 204:
         print(response.status_code)

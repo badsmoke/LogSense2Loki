@@ -104,6 +104,8 @@ Configure LogSense2Loki using the following environment variables:
 - `QUEUE_THREAD_MULTIPLIER` : Multiplikator of the  Queue Threads (default: `4`)
 - `JOB_LABEL` : loki job label (default: `opnsense-parser-test`)
 - `LOG_BATCH_SIZE` : to sending batch size (default: `100`)
+- `LOKI_AUTH_USERNAME` : basic auth username
+- `LOKI_AUTH_PASSWORD` : basic auth password
 
 ### Sample Configuration File (`config.py`)
 
