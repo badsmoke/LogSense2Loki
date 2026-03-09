@@ -34,9 +34,6 @@ LOGGER = logging.getLogger(__name__)
 SYSLOG_APP_PATTERN = re.compile(
     r'^<\d+>1\s+\S+\s+\S+\s+(?P<app>[^\s]+)\s+'
 )
-SYSLOG_GENERIC_PATTERN = re.compile(
-    r'^<\d+>1\s+(?P<timestamp>\S+)\s+(?P<hostname>\S+)\s+(?P<app>[^\s]+)\s+(?P<procid>[^\s]+)\s+\S+\s+(?P<message>.*)$'
-)
 
 
 class SyslogServer:
@@ -133,6 +130,9 @@ class SyslogServer:
         }
         self.no_parser_counter = 0
         self.queue_drop_counter = 0
+        self.unparsed_seen = set()
+        self.unparsed_seen_max = 10000
+        self.unparsed_lock = threading.Lock()
 
     def run(self):
         LOGGER.info("Syslog server is running on %s:%s", self.host, self.port)
@@ -230,18 +230,6 @@ class SyslogServer:
                             parsed_log = parser_func(log_message)
                         break
 
-            if matched_label is None:
-                generic_match = SYSLOG_GENERIC_PATTERN.match(log_message)
-                if generic_match:
-                    parsed_log = {
-                        'timestamp': generic_match.group('timestamp'),
-                        'hostname': generic_match.group('hostname'),
-                        'service': generic_match.group('app'),
-                        'procid': generic_match.group('procid'),
-                        'message': generic_match.group('message'),
-                        'unparsed': True,
-                    }
-
             if parsed_log and matched_label == 'filterlog' and self.geoip:
                 ip_address = parsed_log.get('src_ip')
                 if ip_address and self.is_public_ip(ip_address):
@@ -255,14 +243,24 @@ class SyslogServer:
                 LOGGER.warning("Parsed log is not a dictionary: %r", parsed_log)
             else:
                 self.no_parser_counter += 1
-                if self.no_parser_counter % 1000 == 1:
-                    LOGGER.warning("No parser matched for logs. Total unmatched=%s", self.no_parser_counter)
+                self.log_unique_unparsed(log_message)
             self.FAILED_LOGS.inc()
             return None
         except Exception:
             LOGGER.exception("Failed to process log")
             self.FAILED_LOGS.inc()
             return None
+
+    def log_unique_unparsed(self, log_message):
+        signature = log_message[:512]
+        should_log = False
+        with self.unparsed_lock:
+            if signature not in self.unparsed_seen:
+                if len(self.unparsed_seen) < self.unparsed_seen_max:
+                    self.unparsed_seen.add(signature)
+                should_log = True
+        if should_log:
+            LOGGER.warning("Unparsed unique log: %s", log_message[:1000])
 
     def is_public_ip(self, ip):
         try:
