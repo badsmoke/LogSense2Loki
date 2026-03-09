@@ -34,13 +34,13 @@ jobs:
       - name: Login to Docker Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.docker_registry }}
-          username: ${{ secrets.docker_username }}
-          password: ${{ secrets.docker_password }}
+          registry: ${{ vars.DOCKER_REGISTRY }}
+          username: ${{ vars.DOCKER_REGISTRY_USERNAME }}
+          password: ${{ vars.DOCKER_REGISTRY_PASSWORD }}
 
       - name: Build and push multi-arch image
         run: |
-          IMAGE_NAME=${{ secrets.docker_registry }}/library/logsense2loki
+          IMAGE_NAME=${{ vars.DOCKER_REGISTRY }}/library/logsense2loki
           COMMIT=${{ github.sha }}
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
