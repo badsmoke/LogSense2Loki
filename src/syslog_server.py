@@ -34,6 +34,11 @@ LOGGER = logging.getLogger(__name__)
 SYSLOG_APP_PATTERN = re.compile(
     r'^<\d+>1\s+\S+\s+\S+\s+(?P<app>[^\s]+)\s+'
 )
+UNPARSED_SEQ_PATTERN = re.compile(r'sequenceId="\d+"')
+UNPARSED_BRACKET_PATTERN = re.compile(r'\[\d+:[^\]]+\]')
+UNPARSED_IP_PATTERN = re.compile(r'\b\d{1,3}(?:\.\d{1,3}){3}\b')
+UNPARSED_HEX_PATTERN = re.compile(r'\b[0-9a-fA-F]{6,}\b')
+UNPARSED_NUM_PATTERN = re.compile(r'\b\d+\b')
 
 
 class SyslogServer:
@@ -235,6 +240,9 @@ class SyslogServer:
                 if ip_address and self.is_public_ip(ip_address):
                     self.submit_geoip(ip_address, parsed_log)
 
+            if isinstance(parsed_log, dict) and parsed_log.get('_drop') is True:
+                return None
+
             if parsed_log and isinstance(parsed_log, dict):
                 self.SUCCESSFUL_LOGS.inc()
                 return parsed_log
@@ -252,7 +260,7 @@ class SyslogServer:
             return None
 
     def log_unique_unparsed(self, log_message):
-        signature = log_message[:512]
+        signature = self.unparsed_signature(log_message)
         should_log = False
         with self.unparsed_lock:
             if signature not in self.unparsed_seen:
@@ -261,6 +269,15 @@ class SyslogServer:
                 should_log = True
         if should_log:
             LOGGER.warning("Unparsed unique log: %s", log_message[:1000])
+
+    def unparsed_signature(self, log_message):
+        normalized = log_message
+        normalized = UNPARSED_SEQ_PATTERN.sub('sequenceId="<n>"', normalized)
+        normalized = UNPARSED_BRACKET_PATTERN.sub('[<id>:<token>]', normalized)
+        normalized = UNPARSED_IP_PATTERN.sub('<ip>', normalized)
+        normalized = UNPARSED_HEX_PATTERN.sub('<hex>', normalized)
+        normalized = UNPARSED_NUM_PATTERN.sub('<n>', normalized)
+        return normalized[:512]
 
     def is_public_ip(self, ip):
         try:

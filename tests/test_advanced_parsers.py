@@ -10,6 +10,13 @@ def test_unbound_standard_info_error():
     assert unbound_parser.parse(err)["log_type"] == "error"
 
 
+def test_unbound_debug_drop_signature():
+    drop = '<31>1 2026-03-09T18:18:39+01:00 fw unbound 1 - [meta sequenceId="1"] [1:a] debug: worker request: max UDP reply size modified (1472 to max-udp-size)'
+    keep = '<31>1 2026-03-09T18:18:39+01:00 fw unbound 1 - [meta sequenceId="1"] [1:a] debug: configured stub or forward servers failed -- returning SERVFAIL'
+    assert unbound_parser.parse(drop) == {"_drop": True}
+    assert unbound_parser.parse(keep)["log_type"] == "debug"
+
+
 def test_filterlog_parser_ports_and_length():
     log = '<134>1 2024-05-28T16:39:59+02:00 fw filterlog 1 - [meta sequenceId="1"] 201,,,0a40f86c186bf24db3d173b50ef28a54,vtnet2_vlan99,match,pass,in,4,0x0,,64,35287,0,DF,17,udp,69,10.0.99.244,10.0.99.1,45730,53,49'
     out = filterlog_parser.parse(log)
