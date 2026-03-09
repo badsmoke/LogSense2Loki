@@ -15,18 +15,25 @@ It is quite simple so that you can easily add additional parsers, metrics endpoi
 
 - **Syslog Capture and Parsing**: Seamlessly capture syslog messages and parse them into a structured JSON format.
   - actualy integrated parser:
+    * api
+    * audit
+    * config
+    * configctl
     * configd
     * cron
     * devd
+    * dhclient
     * dhcp
+    * dpinger
     * filterlog
+    * firewall
+    * hostwatch
+    * kernel
     * lighttpd
+    * opnsense
     * resolver (unbound)
+    * rule-updater
     * syslog-ng
-    * audit (wip)
-    * kernel (wip)
-    * dpinger (wip)
-    * opnsense (wip)
 
 
 - **Loki Integration**: Effortlessly forward parsed logs to Grafana Loki for advanced log querying and visualization.
@@ -99,7 +106,7 @@ Configure LogSense2Loki using the following environment variables:
 - `LOKI_URL`: The Grafana Loki URL (default: `https://logs.domain.com/api/prom/push`)
 - `GEOIP_DB_PATH`: Path to the MaxMind GeoIP database (default: `/geo/db/GeoLite2-City.mmdb`)
 - `ENABLE_GEOIP`: Enable (`True`) or disable (`False`) GeoIP lookups (default: `False`)
-- `THREAD_MULTIPLIER` : Multiplikator of the Worker-Threads (default: `4`)
+- `THREAD_MULTIPLIER` : Multiplikator of the Worker-Threads (default: `2`)
 - `QUEUE_SIZE` : Queue Size (default: `10000`)
 - `QUEUE_THREAD_MULTIPLIER` : Multiplikator of the  Queue Threads (default: `4`)
 - `JOB_LABEL` : loki job label (default: `opnsense-parser-test`)
@@ -107,6 +114,9 @@ Configure LogSense2Loki using the following environment variables:
 - `LOKI_AUTH_USERNAME` : basic auth username
 - `LOKI_AUTH_PASSWORD` : basic auth password
 - `LOKI_AUTH_VERIFY_SSL` : certificate validation
+- `ENABLE_PROFILING` : enable cProfile and write `profiling_results.txt` on shutdown (default: `False`)
+
+Note: logs containing `debug:` are dropped by default to reduce noise.
 
 ### Sample Configuration File (`config.py`)
 
@@ -121,6 +131,7 @@ QUEUE_SIZE = 10000
 QUEUE_THREAD_MULTIPLIER = 4
 JOB_LABEL="opnsense-parser-test"
 LOG_BATCH_SIZE=100
+ENABLE_PROFILING=False
 ```
 
 ## Running LogSense2Loki with Docker
@@ -146,6 +157,10 @@ services:
       - LOKI_URL=https://logs.domain.com/api/prom/push
       - GEOIP_DB_PATH=/geo/db/GeoLite2-City.mmdb
       - ENABLE_GEOIP=False
+      - THREAD_MULTIPLIER=2
+      - QUEUE_SIZE=10000
+      - QUEUE_THREAD_MULTIPLIER=4
+      - LOG_BATCH_SIZE=100
       - JOB_LABEL="opnsense-parser-test"
   geoip:
         image: maxmindinc/geoipupdate:v4.10
@@ -220,7 +235,6 @@ In addition to my project, I would like to recommend the project [opnsense-expor
 ## License
 
 This project is licensed under the MIT License.
-
 
 
 
