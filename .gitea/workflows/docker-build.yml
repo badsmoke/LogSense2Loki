@@ -45,6 +45,7 @@ jobs:
           docker buildx build \
             --platform linux/amd64,linux/arm64 \
             -f Dockerfile \
+            --target runtime \
             -t $IMAGE_NAME:latest \
             -t $IMAGE_NAME:$COMMIT \
             --push .
