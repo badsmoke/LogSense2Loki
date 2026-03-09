@@ -74,6 +74,40 @@ def test_geoip_helper_get_city(monkeypatch):
     assert out["organization"] == "Example Org"
 
 
+def test_geoip_helper_get_city_without_coordinates():
+    helper = GeoIPHelper.__new__(GeoIPHelper)
+
+    class Resp:
+        class _City:
+            name = "City"
+
+        class _Country:
+            name = "Country"
+            iso_code = "CC"
+
+        class _Location:
+            latitude = None
+            longitude = None
+
+        class _Traits:
+            organization = "Org"
+
+        city = _City()
+        country = _Country()
+        location = _Location()
+        traits = _Traits()
+
+    class Reader:
+        def city(self, _ip):
+            return Resp()
+
+    helper.reader = Reader()
+    out = helper.get_city("1.2.3.4")
+    assert out["latitude"] is None
+    assert out["longitude"] is None
+    assert out["geohash"] is None
+
+
 def test_syslog_server_process_log_and_geoip(monkeypatch):
     server = SyslogServer("127.0.0.1", 0, False, "", 10, 1, 10)
 

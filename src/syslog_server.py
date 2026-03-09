@@ -17,6 +17,7 @@ from parsers import (
     configctl_parser,
     opnsense_parser,
     rule_updater_parser,
+    hostwatch_parser,
 )
 import loki_client
 from prometheus_client import start_http_server, Counter, Gauge, Summary
@@ -39,6 +40,7 @@ UNPARSED_BRACKET_PATTERN = re.compile(r'\[\d+:[^\]]+\]')
 UNPARSED_IP_PATTERN = re.compile(r'\b\d{1,3}(?:\.\d{1,3}){3}\b')
 UNPARSED_HEX_PATTERN = re.compile(r'\b[0-9a-fA-F]{6,}\b')
 UNPARSED_NUM_PATTERN = re.compile(r'\b\d+\b')
+UNPARSED_MAC_PATTERN = re.compile(r'\b[0-9a-fA-F]{2}(?::[0-9a-fA-F]{2}){5}\b')
 
 
 class SyslogServer:
@@ -109,6 +111,7 @@ class SyslogServer:
             (' config ', 'config', lambda msg: config_parser.parse(msg)),
             (' opnsense ', 'opnsense', lambda msg: opnsense_parser.parse(msg)),
             (' rule-updater.py ', 'rule_updater', lambda msg: rule_updater_parser.parse(msg)),
+            (' hostwatch ', 'hostwatch', lambda msg: hostwatch_parser.parse(msg)),
         )
         self.parser_by_app = {
             'dhcpd': ('dhcpd', lambda msg: dhcpd_parser.parse(msg)),
@@ -128,6 +131,7 @@ class SyslogServer:
             'config': ('config', lambda msg: config_parser.parse(msg)),
             'opnsense': ('opnsense', lambda msg: opnsense_parser.parse(msg)),
             'rule-updater.py': ('rule_updater', lambda msg: rule_updater_parser.parse(msg)),
+            'hostwatch': ('hostwatch', lambda msg: hostwatch_parser.parse(msg)),
         }
         self.parser_timers = {
             label: self.PARSER_PROCESSING_TIME.labels(label)
@@ -275,6 +279,7 @@ class SyslogServer:
         normalized = UNPARSED_SEQ_PATTERN.sub('sequenceId="<n>"', normalized)
         normalized = UNPARSED_BRACKET_PATTERN.sub('[<id>:<token>]', normalized)
         normalized = UNPARSED_IP_PATTERN.sub('<ip>', normalized)
+        normalized = UNPARSED_MAC_PATTERN.sub('<mac>', normalized)
         normalized = UNPARSED_HEX_PATTERN.sub('<hex>', normalized)
         normalized = UNPARSED_NUM_PATTERN.sub('<n>', normalized)
         return normalized[:512]

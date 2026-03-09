@@ -12,7 +12,9 @@ class GeoIPHelper:
             city = response.city.name
             country = response.country.name
             country_code = response.country.iso_code
-            geohash_code = geohash.encode(response.location.latitude, response.location.longitude)
+            latitude = response.location.latitude
+            longitude = response.location.longitude
+            geohash_code = geohash.encode(latitude, longitude) if latitude is not None and longitude is not None else None
             organization = response.traits.organization
 
             # Rewrite city and country names with umlauts
@@ -25,8 +27,8 @@ class GeoIPHelper:
                 "ip": ip_address,
                 "city": city,
                 "country": country,
-                "latitude": response.location.latitude,
-                "longitude": response.location.longitude,
+                "latitude": latitude,
+                "longitude": longitude,
                 "country_code": country_code,
                 "geohash": geohash_code,
                 "organization": organization

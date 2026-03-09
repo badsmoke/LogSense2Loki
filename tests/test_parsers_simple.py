@@ -7,6 +7,7 @@ from parsers import (
     devd_parser,
     dhclient_parser,
     dpinger_parser,
+    hostwatch_parser,
     opnsense_parser,
 )
 
@@ -75,6 +76,14 @@ def test_opnsense_parser():
     log = '<134>1 2024-05-28T16:39:59+02:00 fw opnsense 123 - [meta sequenceId="1"] system started'
     out = opnsense_parser.parse(log)
     assert out["service"] == "opnsense"
+
+
+def test_hostwatch_parser():
+    log = '<13>1 2026-03-09T18:30:26+01:00 fw hostwatch 1 - [meta sequenceId="1"] 2026-03-09T17:30:26.189513Z INFO hostwatch: changed ethernet address host bc:24:11:36:66:62 moved from bc:24:11:d0:90:7e to 10.11.0.9 at vtnet2_vlan1100'
+    out = hostwatch_parser.parse(log)
+    assert out["service"] == "hostwatch"
+    assert out["log_type"] == "changed_ethernet_address"
+    assert out["ip"] == "10.11.0.9"
 
 
 def test_parser_returns_none_for_invalid_log():
