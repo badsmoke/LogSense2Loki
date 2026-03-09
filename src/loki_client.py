@@ -10,6 +10,11 @@ import urllib3
 
 import config
 
+try:
+    import orjson
+except ImportError:
+    orjson = None
+
 
 session = requests.Session()
 
@@ -28,6 +33,18 @@ session.headers.update({'Connection': 'keep-alive'})
 
 def _labels(job_label, service, hostname):
     return f'{{job="{job_label}",service="{service}",hostname="{hostname}"}}'
+
+
+def _serialize_log_line(log):
+    if orjson is not None:
+        return orjson.dumps(log).decode('utf-8')
+    return json.dumps(log, separators=(',', ':'))
+
+
+def _serialize_payload(payload):
+    if orjson is not None:
+        return orjson.dumps(payload)
+    return json.dumps(payload)
 
 
 def send_to_loki(logs):
@@ -61,7 +78,7 @@ def send_to_loki(logs):
         labels = _labels(job_label, service, hostname)
         entry = {
             'ts': datetime.utcnow().isoformat('T') + 'Z',
-            'line': json.dumps(log, separators=(',', ':')),
+            'line': _serialize_log_line(log),
         }
         streams_by_labels.setdefault(labels, []).append(entry)
         valid_count += 1
@@ -81,7 +98,7 @@ def send_to_loki(logs):
         response = session.post(
             loki_url,
             headers=headers,
-            data=json.dumps(payload),
+            data=_serialize_payload(payload),
             auth=auth,
             verify=verify_ssl,
             timeout=(2, 10),

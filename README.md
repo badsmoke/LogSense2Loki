@@ -46,6 +46,9 @@ LogSense2Loki provides the following Prometheus metrics endpoint at `http://loca
 
 - `logsense2loki_successful_logs_total`: Monitors the total number of successfully parsed and sent logs.
 - `logsense2loki_failed_logs_total`: Tracks the total number of logs that failed to parse or send.
+- `logsense2loki_dropped_debug_total`: Counts debug logs dropped before parsing.
+- `logsense2loki_dropped_queue_full_total`: Counts logs dropped because the queue was full.
+- `logsense2loki_unparsed_unique_total`: Counts unique unparsed log signatures (capped by in-memory signature cache).
 
 
 ## example Filterlogs
@@ -188,6 +191,12 @@ Build the Docker image with the following command:
 docker build -t logsense2loki .
 ```
 
+Official Python 3.14 base image:
+
+```bash
+docker build -t logsense2loki:py314 .
+```
+
 ## Grafana Geomap Integration
 
 To visualize the GeoIP data in Grafana Geomap, follow these steps:
@@ -235,8 +244,6 @@ In addition to my project, I would like to recommend the project [opnsense-expor
 ## License
 
 This project is licensed under the MIT License.
-
-
 
 
 

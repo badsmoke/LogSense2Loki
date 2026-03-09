@@ -1,4 +1,4 @@
-FROM docker.badcloud.eu/plugins/python:3.11-slim-buster AS base
+FROM python:3.14-slim-bookworm AS base
 
 
 LABEL maintainer="dockerhub@badcloud.eu"

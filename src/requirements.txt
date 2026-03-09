@@ -4,3 +4,4 @@ geoip2
 unidecode
 aiohttp
 pygeohash
+orjson

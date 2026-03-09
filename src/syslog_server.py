@@ -62,6 +62,18 @@ class SyslogServer:
         'logsense2loki_received_logs_total',
         'Total number of received logs',
     )
+    DROPPED_DEBUG_LOGS = Counter(
+        'logsense2loki_dropped_debug_total',
+        'Total number of dropped debug logs',
+    )
+    DROPPED_QUEUE_FULL_LOGS = Counter(
+        'logsense2loki_dropped_queue_full_total',
+        'Total number of dropped logs due to full queue',
+    )
+    UNPARSED_UNIQUE_LOGS = Counter(
+        'logsense2loki_unparsed_unique_total',
+        'Total number of unique unparsed log signatures',
+    )
     QUEUE_SIZE = Gauge('logsense2loki_queue_size', 'Current size of the processing queue')
     QUEUE_MAX_SIZE = Gauge('logsense2loki_queue_max_size', 'Maximum size of the processing queue')
 
@@ -167,6 +179,7 @@ class SyslogServer:
                         self.queue.put_nowait(log_message)
                     except queue.Full:
                         self.FAILED_LOGS.inc()
+                        self.DROPPED_QUEUE_FULL_LOGS.inc()
                         self.queue_drop_counter += 1
                         if self.queue_drop_counter % 1000 == 1:
                             LOGGER.warning(
@@ -225,6 +238,7 @@ class SyslogServer:
         try:
             # Drop debug logs globally to avoid noise and unmatched churn.
             if ' debug:' in log_message.lower():
+                self.DROPPED_DEBUG_LOGS.inc()
                 return None
 
             parsed_log = None
@@ -278,7 +292,8 @@ class SyslogServer:
             if signature not in self.unparsed_seen:
                 if len(self.unparsed_seen) < self.unparsed_seen_max:
                     self.unparsed_seen.add(signature)
-                should_log = True
+                    self.UNPARSED_UNIQUE_LOGS.inc()
+                    should_log = True
         if should_log:
             LOGGER.warning("Unparsed unique log: %s", log_message[:1000])
 
