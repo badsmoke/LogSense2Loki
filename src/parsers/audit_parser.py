@@ -6,7 +6,7 @@ AUDIT_PATTERN = re.compile(
 LOGIN_PATTERNS = {
     'user': re.compile(r"user '(?P<user>\w+)"),
     'ip': re.compile(r'from: (?P<ip>\d+\.\d+\.\d+\.\d+)'),
-    'webgui_auth': re.compile(r'user (?P<user>\w+) authenticated successfully for WebGui'),
+    'webgui_auth': re.compile(r'user (?P<webgui_auth>\w+) authenticated successfully for WebGui'),
     'failure_reason': re.compile(r'reason: (?P<failure_reason>.+)'),
 }
 CHANGE_PATTERNS = {
@@ -46,7 +46,11 @@ def parse_login(message):
     for key, pattern in LOGIN_PATTERNS.items():
         match = pattern.search(message)
         if match:
-            login_info[key] = match.group(key)
+            groups = match.groupdict()
+            if key in groups:
+                login_info[key] = groups[key]
+            elif key == 'webgui_auth' and 'user' in groups:
+                login_info[key] = groups['user']
 
     if 'Successful login' in message or 'authenticated successfully' in message:
         login_info['status'] = 'successful'

@@ -34,6 +34,9 @@ LOGGER = logging.getLogger(__name__)
 SYSLOG_APP_PATTERN = re.compile(
     r'^<\d+>1\s+\S+\s+\S+\s+(?P<app>[^\s]+)\s+'
 )
+SYSLOG_GENERIC_PATTERN = re.compile(
+    r'^<\d+>1\s+(?P<timestamp>\S+)\s+(?P<hostname>\S+)\s+(?P<app>[^\s]+)\s+(?P<procid>[^\s]+)\s+\S+\s+(?P<message>.*)$'
+)
 
 
 class SyslogServer:
@@ -226,6 +229,18 @@ class SyslogServer:
                         with self.parser_timers[label].time():
                             parsed_log = parser_func(log_message)
                         break
+
+            if matched_label is None:
+                generic_match = SYSLOG_GENERIC_PATTERN.match(log_message)
+                if generic_match:
+                    parsed_log = {
+                        'timestamp': generic_match.group('timestamp'),
+                        'hostname': generic_match.group('hostname'),
+                        'service': generic_match.group('app'),
+                        'procid': generic_match.group('procid'),
+                        'message': generic_match.group('message'),
+                        'unparsed': True,
+                    }
 
             if parsed_log and matched_label == 'filterlog' and self.geoip:
                 ip_address = parsed_log.get('src_ip')
