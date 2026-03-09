@@ -1,69 +1,42 @@
 import re
 
-def parse(log):
+KERNEL_PATTERN = re.compile(
+    r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) kernel - - \[meta sequenceId="\d+"\] (?P<message>.+)'
+)
+ARP_PATTERN = re.compile(
+    r'arp: (?P<ip>\d+\.\d+\.\d+\.\d+) moved from (?P<old_mac>[0-9a-f:]+) to (?P<new_mac>[0-9a-f:]+) on (?P<interface>\S+)'
+)
 
-    pattern = (
-        r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) devd \d+ - \[[^\]]+\] '
-        r'(?P<message>.+)'
-    )
-
-    match = re.match(pattern, log)
-    
-    if match:
-        parsed_log = {
-            'timestamp': match.group('timestamp'),
-            'hostname': match.group('hostname'),
-            'service': 'kernel',
-            'message': match.group('message')
-        }
-
-        return parsed_log
-    else:
-        print(f"No match found! Log: {log}")
-    
-    return None
-
-import re
 
 def parse(log):
+    match = KERNEL_PATTERN.match(log)
+    if not match:
+        return None
 
-    pattern = (
-        r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) kernel - - \[meta sequenceId="\d+"\] (?P<message>.+)'
-    )
+    message = match.group('message')
+    parsed_log = {
+        'timestamp': match.group('timestamp'),
+        'hostname': match.group('hostname'),
+        'service': 'kernel',
+        'message': message,
+    }
 
-    match = re.match(pattern, log)
-
-    if match:
-        parsed_log = {
-            'timestamp': match.group('timestamp'),
-            'hostname': match.group('hostname'),
-            'service': 'kernel',
-            'message': match.group('message')
-        }
-
-        # Differentiation of ARP logs
-        if match.group('message').startswith("arp:"):
-            parsed_log['log_type'] = 'arp'
-            parsed_log.update(parse_arp_message(match.group('message')))
-        else:
-            parsed_log['log_type'] = 'generic'
-
-        return parsed_log
+    if message.startswith('arp:'):
+        parsed_log['log_type'] = 'arp'
+        parsed_log.update(parse_arp_message(message))
     else:
-        print(f"No match found! Log: {log}")
+        parsed_log['log_type'] = 'generic'
 
-    return None
+    return parsed_log
+
 
 def parse_arp_message(message):
-    arp_pattern = r"arp: (?P<ip>\d+\.\d+\.\d+\.\d+) moved from (?P<old_mac>[0-9a-f:]+) to (?P<new_mac>[0-9a-f:]+) on (?P<interface>\S+)"
-    match = re.search(arp_pattern, message)
-    
-    if match:
-        return {
-            'ip': match.group('ip'),
-            'old_mac': match.group('old_mac'),
-            'new_mac': match.group('new_mac'),
-            'interface': match.group('interface')
-        }
-    
-    return {}
+    match = ARP_PATTERN.search(message)
+    if not match:
+        return {}
+    return {
+        'ip': match.group('ip'),
+        'old_mac': match.group('old_mac'),
+        'new_mac': match.group('new_mac'),
+        'interface': match.group('interface'),
+    }

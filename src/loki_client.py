@@ -1,75 +1,94 @@
-import requests
 import json
-import config
 import os
 from datetime import datetime
+
+import requests
 from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
 from requests.auth import HTTPBasicAuth
+from urllib3.util.retry import Retry
 import urllib3
 
+import config
 
 
-
-# Global session to maintain keep-alive connections
 session = requests.Session()
 
-# Setup retry strategy
 retry_strategy = Retry(
     total=3,
     backoff_factor=1,
     status_forcelist=[429, 500, 502, 503, 504],
-    allowed_methods=["HEAD", "GET", "OPTIONS", "POST"]
+    allowed_methods=['HEAD', 'GET', 'OPTIONS', 'POST'],
 )
 
-adapter = HTTPAdapter(max_retries=retry_strategy, pool_connections=10, pool_maxsize=10, pool_block=True)
-session.mount("http://", adapter)
-session.mount("https://", adapter)
+adapter = HTTPAdapter(max_retries=retry_strategy, pool_connections=20, pool_maxsize=20, pool_block=True)
+session.mount('http://', adapter)
+session.mount('https://', adapter)
+session.headers.update({'Connection': 'keep-alive'})
 
-# Keep-Alive header
-session.headers.update({
-    "Connection": "keep-alive"
-})
+
+def _labels(job_label, service, hostname):
+    return f'{{job="{job_label}",service="{service}",hostname="{hostname}"}}'
+
 
 def send_to_loki(logs):
+    if not logs:
+        return 0
+
     headers = {'Content-Type': 'application/json'}
     job_label = os.getenv('JOB_LABEL', config.JOB_LABEL)
-    loki_entries = []
-    
-    # Basic Auth credentials
+
     loki_username = os.getenv('LOKI_AUTH_USERNAME')
     loki_password = os.getenv('LOKI_AUTH_PASSWORD')
-    # SSL verification option
     verify_ssl = os.getenv('LOKI_AUTH_VERIFY_SSL', 'True').lower() == 'true'
+
     if not verify_ssl:
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
     auth = HTTPBasicAuth(loki_username, loki_password) if loki_username and loki_password else None
 
-    for log in logs:
-        # Safety check to ensure log is a dictionary
-        if not isinstance(log, dict):
-            print(f"Invalid log format, expected dictionary but got {type(log)}")
-            continue  # Skip invalid logs
-        
-        loki_entry = {
-            "labels": '{job="%s",service="%s", hostname="%s"}' % (job_label, log["service"], log["hostname"]),
-            "entries": [
-                {
-                    "ts": datetime.utcnow().isoformat("T") + "Z",
-                    "line": json.dumps(log)
-                }
-            ]
-        }
-        loki_entries.append(loki_entry)
+    streams_by_labels = {}
+    valid_count = 0
 
-    data = json.dumps({"streams": loki_entries})
+    for log in logs:
+        if not isinstance(log, dict):
+            continue
+
+        service = log.get('service')
+        hostname = log.get('hostname')
+        if not service or not hostname:
+            continue
+
+        labels = _labels(job_label, service, hostname)
+        entry = {
+            'ts': datetime.utcnow().isoformat('T') + 'Z',
+            'line': json.dumps(log, separators=(',', ':')),
+        }
+        streams_by_labels.setdefault(labels, []).append(entry)
+        valid_count += 1
+
+    if not streams_by_labels:
+        return 0
+
+    payload = {
+        'streams': [
+            {'labels': labels, 'entries': entries}
+            for labels, entries in streams_by_labels.items()
+        ]
+    }
     loki_url = os.getenv('LOKI_URL', config.LOKI_URL)
 
-    response = session.post(loki_url, headers=headers, data=data, auth=auth, verify=verify_ssl)
-    
-    if response.status_code != 204:
-        print(response.status_code)
-        print(f"Failed to send log to Loki: {response.content}")
-    #else:
-    #    print("Successfully sent logs to Loki")
+    try:
+        response = session.post(
+            loki_url,
+            headers=headers,
+            data=json.dumps(payload),
+            auth=auth,
+            verify=verify_ssl,
+            timeout=(2, 10),
+        )
+        if response.status_code != 204:
+            raise RuntimeError(f'Loki returned status {response.status_code}: {response.text[:500]}')
+    except requests.RequestException as exc:
+        raise RuntimeError(f'Failed to send logs to Loki: {exc}') from exc
+
+    return valid_count

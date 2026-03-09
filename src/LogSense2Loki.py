@@ -1,13 +1,16 @@
-import syslog_server
-import config
-import os
-import threading
 import cProfile
-import pstats
 import io
+import os
+import pstats
 import signal
-import sys 
+import sys
+import threading
 
+import config
+import syslog_server
+
+
+pr = None
 
 
 def main():
@@ -20,35 +23,54 @@ def main():
     queue_thread_multiplier = int(os.getenv('QUEUE_THREAD_MULTIPLIER', config.QUEUE_THREAD_MULTIPLIER))
     log_batch_size = int(os.getenv('LOG_BATCH_SIZE', config.LOG_BATCH_SIZE))
 
-    server = syslog_server.SyslogServer(syslog_host, syslog_port, geoip, geoip_db_path, max_queue_size, thread_multiplier,log_batch_size)
-    
-    # Start multiple threads for processing from the queue
-    for _ in range(os.cpu_count() * queue_thread_multiplier):
+    server = syslog_server.SyslogServer(
+        syslog_host,
+        syslog_port,
+        geoip,
+        geoip_db_path,
+        max_queue_size,
+        thread_multiplier,
+        log_batch_size,
+    )
+
+    worker_threads = max(1, (os.cpu_count() or 1) * queue_thread_multiplier)
+    for _ in range(worker_threads):
         t = threading.Thread(target=server.process_log_queue, daemon=True)
         t.start()
 
     server.run()
 
-def signal_handler(sig, frame):
+
+def signal_handler(_sig, _frame):
+    global pr
+    if pr is None:
+        sys.exit(0)
+
     pr.disable()
     s = io.StringIO()
-    sortby = 'cumulative'
-    ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-    ps.print_stats()
-    with open("profiling_results.txt", "w") as f:
+    pstats.Stats(pr, stream=s).sort_stats('cumulative').print_stats()
+    with open('profiling_results.txt', 'w') as f:
         f.write(s.getvalue())
-    print("Profiling data written to profiling_results.txt.")
+    print('Profiling data written to profiling_results.txt.')
     sys.exit(0)
 
-if __name__ == "__main__":
-    pr = cProfile.Profile()
-    signal.signal(signal.SIGINT, signal_handler)
-    signal.signal(signal.SIGTERM, signal_handler)
 
-    try:
-        pr.enable()
-        main()
-    except KeyboardInterrupt:
-        pass
-    finally:
-        signal_handler(None, None)
+if __name__ == '__main__':
+    enable_profiling = os.getenv('ENABLE_PROFILING', 'false').lower() == 'true'
+
+    if enable_profiling:
+        pr = cProfile.Profile()
+        signal.signal(signal.SIGINT, signal_handler)
+        signal.signal(signal.SIGTERM, signal_handler)
+        try:
+            pr.enable()
+            main()
+        except KeyboardInterrupt:
+            pass
+        finally:
+            signal_handler(None, None)
+    else:
+        try:
+            main()
+        except KeyboardInterrupt:
+            pass
