@@ -219,6 +219,10 @@ class SyslogServer:
 
     def process_log(self, log_message):
         try:
+            # Drop debug logs globally to avoid noise and unmatched churn.
+            if ' debug:' in log_message.lower():
+                return None
+
             parsed_log = None
             matched_label = None
 
