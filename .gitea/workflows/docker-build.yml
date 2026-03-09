@@ -1,34 +1,18 @@
-name: Docker Build and Push
+name: Multi-Arch Docker Build and Push (Frontend + Backend)
 
 on:
   push:
     branches:
-      - master
       - main
+      - master
+      - badboard-v2
       - codex
-    tags:
-      - "*"
 
 jobs:
-  unit-tests:
+
+  docker:
     runs-on: ubuntu-latest
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Build test image
-        run: docker build --target test -f Dockerfile -t logsense2loki-tests .
-
-      - name: Run unit tests
-        run: docker run --rm logsense2loki-tests
-
-  docker-build-amd64:
-    runs-on: ubuntu-latest
-    needs: unit-tests
-    outputs:
-      image_repo: ${{ steps.meta.outputs.image_repo }}
-      version_tag: ${{ steps.meta.outputs.version_tag }}
+    needs: backend-tests
 
     steps:
       - name: Checkout Repository
@@ -40,108 +24,30 @@ jobs:
       - name: Login to Docker Registry
         uses: docker/login-action@v3
         with:
-          registry: ${{ secrets.docker_registry }}
-          username: ${{ secrets.docker_username }}
-          password: ${{ secrets.docker_password }}
+          registry: ${{ vars.DOCKER_REGISTRY }}
+          username: ${{ vars.DOCKER_REGISTRY_USERNAME }}
+          password: ${{ vars.DOCKER_REGISTRY_PASSWORD }}
 
-      - name: Resolve image tags
-        id: meta
+      - name: Build & Push Backend
         run: |
-          REPO_NAME="$(basename "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
-          IMAGE_REPO="${{ secrets.docker_registry }}/library/${REPO_NAME}"
-          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-            VERSION_TAG="${GITHUB_REF_NAME}"
-          else
-            VERSION_TAG="${GITHUB_SHA::10}"
-          fi
-          echo "image_repo=${IMAGE_REPO}" >> "${GITHUB_OUTPUT}"
-          echo "version_tag=${VERSION_TAG}" >> "${GITHUB_OUTPUT}"
-
-      - name: Build and push linux/amd64
-        run: |
+          IMAGE_NAME=${{ vars.DOCKER_REGISTRY }}/library/logsense2loki 
+          COMMIT=${{ github.sha }}
           docker buildx build \
-            --platform linux/amd64 \
-            -f Dockerfile \
-            -t "${{ steps.meta.outputs.image_repo }}:latest-linux-amd64" \
-            -t "${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.version_tag }}-linux-amd64" \
-            --push .
+            --platform linux/amd64,linux/arm64 \
+            -f backend/Dockerfile \
+            --target runtime \
+            -t $IMAGE_NAME:latest \
+            -t $IMAGE_NAME:$COMMIT \
+            --push backend/
 
-  docker-build-arm64:
-    runs-on: ubuntu-latest
-    needs: unit-tests
-    outputs:
-      image_repo: ${{ steps.meta.outputs.image_repo }}
-      version_tag: ${{ steps.meta.outputs.version_tag }}
-
-    steps:
-      - name: Checkout Repository
-        uses: actions/checkout@v4
-
-      - name: Setup QEMU
-        uses: docker/setup-qemu-action@v3
-
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.docker_registry }}
-          username: ${{ secrets.docker_username }}
-          password: ${{ secrets.docker_password }}
-
-      - name: Resolve image tags
-        id: meta
+      - name: Build & Push Frontend
         run: |
-          REPO_NAME="$(basename "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
-          IMAGE_REPO="${{ secrets.docker_registry }}/library/${REPO_NAME}"
-          if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-            VERSION_TAG="${GITHUB_REF_NAME}"
-          else
-            VERSION_TAG="${GITHUB_SHA::10}"
-          fi
-          echo "image_repo=${IMAGE_REPO}" >> "${GITHUB_OUTPUT}"
-          echo "version_tag=${VERSION_TAG}" >> "${GITHUB_OUTPUT}"
-
-      - name: Build and push linux/arm64
-        run: |
+          IMAGE_NAME=${{ vars.DOCKER_REGISTRY }}/library/logsense2loki 
+          COMMIT=${{ github.sha }}
           docker buildx build \
-            --platform linux/arm64 \
-            -f Dockerfile \
-            -t "${{ steps.meta.outputs.image_repo }}:latest-linux-arm64" \
-            -t "${{ steps.meta.outputs.image_repo }}:${{ steps.meta.outputs.version_tag }}-linux-arm64" \
-            --push .
-
-  manifest:
-    runs-on: ubuntu-latest
-    needs:
-      - docker-build-amd64
-      - docker-build-arm64
-
-    steps:
-      - name: Setup Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Login to Docker Registry
-        uses: docker/login-action@v3
-        with:
-          registry: ${{ secrets.docker_registry }}
-          username: ${{ secrets.docker_username }}
-          password: ${{ secrets.docker_password }}
-
-      - name: Create version manifest
-        run: |
-          IMAGE_REPO="${{ needs.docker-build-amd64.outputs.image_repo }}"
-          VERSION_TAG="${{ needs.docker-build-amd64.outputs.version_tag }}"
-          docker buildx imagetools create \
-            -t "${IMAGE_REPO}:${VERSION_TAG}" \
-            "${IMAGE_REPO}:${VERSION_TAG}-linux-amd64" \
-            "${IMAGE_REPO}:${VERSION_TAG}-linux-arm64"
-
-      - name: Create latest manifest
-        run: |
-          IMAGE_REPO="${{ needs.docker-build-amd64.outputs.image_repo }}"
-          docker buildx imagetools create \
-            -t "${IMAGE_REPO}:latest" \
-            "${IMAGE_REPO}:latest-linux-amd64" \
-            "${IMAGE_REPO}:latest-linux-arm64"
+            --platform linux/amd64,linux/arm64 \
+            -f frontend/Dockerfile \
+            --build-arg GIT_HASH=$COMMIT \
+            -t $IMAGE_NAME:latest \
+            -t $IMAGE_NAME:$COMMIT \
+            --push frontend/
