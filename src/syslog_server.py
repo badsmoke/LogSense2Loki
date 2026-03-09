@@ -26,10 +26,14 @@ import ipaddress
 import logging
 import os
 import queue
+import re
 import threading
 
 
 LOGGER = logging.getLogger(__name__)
+SYSLOG_APP_PATTERN = re.compile(
+    r'^<\d+>1\s+\S+\s+\S+\s+(?P<app>[^\s]+)\s+'
+)
 
 
 class SyslogServer:
@@ -101,11 +105,31 @@ class SyslogServer:
             (' opnsense ', 'opnsense', lambda msg: opnsense_parser.parse(msg)),
             (' rule-updater.py ', 'rule_updater', lambda msg: rule_updater_parser.parse(msg)),
         )
+        self.parser_by_app = {
+            'dhcpd': ('dhcpd', lambda msg: dhcpd_parser.parse(msg)),
+            'filterlog': ('filterlog', lambda msg: filterlog_parser.parse(msg)),
+            'unbound': ('unbound', lambda msg: unbound_parser.parse(msg)),
+            'configd.py': ('configd.py', lambda msg: configd_parser.parse(msg)),
+            'devd': ('devd', lambda msg: devd_parser.parse(msg)),
+            'syslog-ng': ('syslog-ng', lambda msg: syslogng_parser.parse(msg)),
+            'lighttpd': ('lighttpd', lambda msg: lighttpd_parser.parse(msg)),
+            '/usr/sbin/cron': ('cron', lambda msg: cron_parser.parse(msg)),
+            'audit': ('audit', lambda msg: audit_parser.parse(msg)),
+            'kernel': ('kernel', lambda msg: kernel_parser.parse(msg)),
+            'dhclient': ('dhclient', lambda msg: dhclient_parser.parse(msg)),
+            'dpinger': ('dpinger', lambda msg: dpinger_parser.parse(msg)),
+            'api': ('api', lambda msg: api_parser.parse(msg)),
+            'configctl': ('configctl', lambda msg: configctl_parser.parse(msg)),
+            'config': ('config', lambda msg: config_parser.parse(msg)),
+            'opnsense': ('opnsense', lambda msg: opnsense_parser.parse(msg)),
+            'rule-updater.py': ('rule_updater', lambda msg: rule_updater_parser.parse(msg)),
+        }
         self.parser_timers = {
             label: self.PARSER_PROCESSING_TIME.labels(label)
             for _, label, _ in self.parser_dispatch
         }
         self.no_parser_counter = 0
+        self.queue_drop_counter = 0
 
     def run(self):
         LOGGER.info("Syslog server is running on %s:%s", self.host, self.port)
@@ -127,7 +151,12 @@ class SyslogServer:
                         self.queue.put_nowait(log_message)
                     except queue.Full:
                         self.FAILED_LOGS.inc()
-                        LOGGER.warning("Queue full, dropping log message")
+                        self.queue_drop_counter += 1
+                        if self.queue_drop_counter % 1000 == 1:
+                            LOGGER.warning(
+                                "Queue full, dropping log messages. total_dropped=%s",
+                                self.queue_drop_counter,
+                            )
 
                 self.QUEUE_SIZE.set(self.queue.qsize())
 
@@ -181,12 +210,22 @@ class SyslogServer:
             parsed_log = None
             matched_label = None
 
-            for needle, label, parser_func in self.parser_dispatch:
-                if needle in log_message:
-                    matched_label = label
-                    with self.parser_timers[label].time():
+            app_match = SYSLOG_APP_PATTERN.match(log_message)
+            if app_match:
+                app_name = app_match.group('app')
+                parser_entry = self.parser_by_app.get(app_name)
+                if parser_entry:
+                    matched_label, parser_func = parser_entry
+                    with self.parser_timers[matched_label].time():
                         parsed_log = parser_func(log_message)
-                    break
+
+            if matched_label is None:
+                for needle, label, parser_func in self.parser_dispatch:
+                    if needle in log_message:
+                        matched_label = label
+                        with self.parser_timers[label].time():
+                            parsed_log = parser_func(log_message)
+                        break
 
             if parsed_log and matched_label == 'filterlog' and self.geoip:
                 ip_address = parsed_log.get('src_ip')
