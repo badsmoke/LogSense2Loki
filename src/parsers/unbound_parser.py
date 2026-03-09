@@ -17,6 +17,10 @@ UNBOUND_ERROR_PATTERN = re.compile(
     r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) unbound \d+ - \[.*?\] '
     r'\[\d+:[^\]]+\] error: read \(in tcp s\): (?P<error>.+) for (?P<src_ip>\d+\.\d+\.\d+\.\d+) port (?P<port>\d+)'
 )
+UNBOUND_DHCPD_EXPIRED_PATTERN = re.compile(
+    r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) unbound \d+ - \[.*?\] '
+    r'dhcpd expired (?P<client>\S+) @ (?P<ip>\d+\.\d+\.\d+\.\d+)'
+)
 
 
 def parse(log):
@@ -26,6 +30,8 @@ def parse(log):
         return parse_unbound_debug_log(log)
     if ' error: ' in log:
         return parse_unbound_error_log(log)
+    if 'dhcpd expired ' in log:
+        return parse_unbound_dhcpd_expired(log)
     return parse_standard_unbound_log(log)
 
 
@@ -83,4 +89,18 @@ def parse_unbound_error_log(log):
         'error_message': match.group('error'),
         'src_ip': match.group('src_ip'),
         'port': match.group('port'),
+    }
+
+
+def parse_unbound_dhcpd_expired(log):
+    match = UNBOUND_DHCPD_EXPIRED_PATTERN.match(log)
+    if not match:
+        return None
+    return {
+        'timestamp': match.group('timestamp'),
+        'hostname': match.group('hostname'),
+        'service': 'resolver',
+        'log_type': 'dhcpd_expired',
+        'client': match.group('client'),
+        'ip': match.group('ip'),
     }

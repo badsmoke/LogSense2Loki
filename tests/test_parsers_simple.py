@@ -7,6 +7,7 @@ from parsers import (
     devd_parser,
     dhclient_parser,
     dpinger_parser,
+    firewall_parser,
     hostwatch_parser,
     opnsense_parser,
 )
@@ -84,6 +85,23 @@ def test_hostwatch_parser():
     assert out["service"] == "hostwatch"
     assert out["log_type"] == "changed_ethernet_address"
     assert out["ip"] == "10.11.0.9"
+
+
+def test_firewall_parser_dns_not_exists():
+    log = '<163>1 2026-03-09T19:04:00+01:00 fw firewall 76807 - [meta sequenceId="1"] The DNS query name does not exist: hub.docker.io. [for allowed_default_hosts]'
+    out = firewall_parser.parse(log)
+    assert out["service"] == "firewall"
+    assert out["log_type"] == "dns_query_name_not_exists"
+    assert out["query"] == "hub.docker.io"
+    assert out["alias"] == "allowed_default_hosts"
+
+
+def test_firewall_parser_resolving():
+    log = '<165>1 2026-03-09T19:04:00+01:00 fw firewall 76807 - [meta sequenceId="1"] resolving 17 hostnames (67 addresses) for allowed_default_hosts took 0.08 seconds'
+    out = firewall_parser.parse(log)
+    assert out["service"] == "firewall"
+    assert out["log_type"] == "alias_resolving"
+    assert out["hostnames"] == "17"
 
 
 def test_parser_returns_none_for_invalid_log():

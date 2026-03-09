@@ -17,6 +17,13 @@ def test_unbound_debug_drop_signature():
     assert unbound_parser.parse(keep)["log_type"] == "debug"
 
 
+def test_unbound_dhcpd_expired():
+    log = '<165>1 2026-03-09T18:53:06+01:00 fw unbound 1 - [meta sequenceId="1"] dhcpd expired Pixel-8a-von-Melli @ 192.168.4.241'
+    out = unbound_parser.parse(log)
+    assert out["log_type"] == "dhcpd_expired"
+    assert out["ip"] == "192.168.4.241"
+
+
 def test_filterlog_parser_ports_and_length():
     log = '<134>1 2024-05-28T16:39:59+02:00 fw filterlog 1 - [meta sequenceId="1"] 201,,,0a40f86c186bf24db3d173b50ef28a54,vtnet2_vlan99,match,pass,in,4,0x0,,64,35287,0,DF,17,udp,69,10.0.99.244,10.0.99.1,45730,53,49'
     out = filterlog_parser.parse(log)
