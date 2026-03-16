@@ -15,11 +15,15 @@ UNBOUND_DEBUG_PATTERN = re.compile(
 )
 UNBOUND_ERROR_PATTERN = re.compile(
     r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) unbound \d+ - \[.*?\] '
-    r'\[\d+:[^\]]+\] error: read \(in tcp s\): (?P<error>.+) for (?P<src_ip>\d+\.\d+\.\d+\.\d+) port (?P<port>\d+)'
+    r'\[\d+:[^\]]+\] error: read \(in tcp (?P<tcp_phase>[^\)]+)\): (?P<error>.+) for (?P<src_ip>\d+\.\d+\.\d+\.\d+) port (?P<port>\d+)'
 )
 UNBOUND_DHCPD_EXPIRED_PATTERN = re.compile(
     r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) unbound \d+ - \[.*?\] '
     r'dhcpd expired (?P<client>\S+) @ (?P<ip>\d+\.\d+\.\d+\.\d+)'
+)
+UNBOUND_DHCPD_ENTRY_CHANGED_PATTERN = re.compile(
+    r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) unbound \d+ - \[.*?\] '
+    r'dhcpd entry changed (?P<client>\S+) @ (?P<ip>\d+\.\d+\.\d+\.\d+)\.'
 )
 
 
@@ -32,6 +36,8 @@ def parse(log):
         return parse_unbound_error_log(log)
     if 'dhcpd expired ' in log:
         return parse_unbound_dhcpd_expired(log)
+    if 'dhcpd entry changed ' in log:
+        return parse_unbound_dhcpd_entry_changed(log)
     return parse_standard_unbound_log(log)
 
 
@@ -86,6 +92,7 @@ def parse_unbound_error_log(log):
         'hostname': match.group('hostname'),
         'service': 'resolver',
         'log_type': 'error',
+        'tcp_phase': match.group('tcp_phase'),
         'error_message': match.group('error'),
         'src_ip': match.group('src_ip'),
         'port': match.group('port'),
@@ -101,6 +108,20 @@ def parse_unbound_dhcpd_expired(log):
         'hostname': match.group('hostname'),
         'service': 'resolver',
         'log_type': 'dhcpd_expired',
+        'client': match.group('client'),
+        'ip': match.group('ip'),
+    }
+
+
+def parse_unbound_dhcpd_entry_changed(log):
+    match = UNBOUND_DHCPD_ENTRY_CHANGED_PATTERN.match(log)
+    if not match:
+        return None
+    return {
+        'timestamp': match.group('timestamp'),
+        'hostname': match.group('hostname'),
+        'service': 'resolver',
+        'log_type': 'dhcpd_entry_changed',
         'client': match.group('client'),
         'ip': match.group('ip'),
     }

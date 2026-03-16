@@ -19,6 +19,7 @@ from parsers import (
     rule_updater_parser,
     hostwatch_parser,
     firewall_parser,
+    qemu_ga_parser,
 )
 import loki_client
 from prometheus_client import start_http_server, Counter, Gauge, Summary
@@ -127,6 +128,7 @@ class SyslogServer:
             (' rule-updater.py ', 'rule_updater', lambda msg: rule_updater_parser.parse(msg)),
             (' hostwatch ', 'hostwatch', lambda msg: hostwatch_parser.parse(msg)),
             (' firewall ', 'firewall', lambda msg: firewall_parser.parse(msg)),
+            (' qemu-ga ', 'qemu-ga', lambda msg: qemu_ga_parser.parse(msg)),
         )
         self.parser_by_app = {
             'dhcpd': ('dhcpd', lambda msg: dhcpd_parser.parse(msg)),
@@ -148,6 +150,7 @@ class SyslogServer:
             'rule-updater.py': ('rule_updater', lambda msg: rule_updater_parser.parse(msg)),
             'hostwatch': ('hostwatch', lambda msg: hostwatch_parser.parse(msg)),
             'firewall': ('firewall', lambda msg: firewall_parser.parse(msg)),
+            'qemu-ga': ('qemu-ga', lambda msg: qemu_ga_parser.parse(msg)),
         }
         self.parser_timers = {
             label: self.PARSER_PROCESSING_TIME.labels(label)
@@ -236,6 +239,8 @@ class SyslogServer:
 
     def process_log(self, log_message):
         try:
+            if log_message.strip() == ')':
+                return None
             # Drop debug logs globally to avoid noise and unmatched churn.
             if ' debug:' in log_message.lower():
                 self.DROPPED_DEBUG_LOGS.inc()

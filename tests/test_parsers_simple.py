@@ -10,6 +10,7 @@ from parsers import (
     firewall_parser,
     hostwatch_parser,
     opnsense_parser,
+    qemu_ga_parser,
 )
 
 
@@ -67,7 +68,7 @@ def test_dhclient_parser():
 
 
 def test_dpinger_parser():
-    log = '<134>1 2024-05-28T16:39:59+02:00 fw dpinger 123 - ALERT: WAN_DHCP (Addr: 8.8.8.8 Alarm: 0 -> 1 RTT: 12.3 ms RTTd: 1.1 ms Loss: 0.0 %)'
+    log = '<134>1 2024-05-28T16:39:59+02:00 fw dpinger 123 - [meta sequenceId="1"] ALERT: WAN_DHCP (Addr: 8.8.8.8 Alarm: 0 -> 1 RTT: 12.3 ms RTTd: 1.1 ms Loss: 0.0 %)'
     out = dpinger_parser.parse(log)
     assert out["service"] == "dpinger"
     assert out["interface"] == "WAN_DHCP"
@@ -87,6 +88,14 @@ def test_hostwatch_parser():
     assert out["ip"] == "10.11.0.9"
 
 
+def test_hostwatch_parser_new_station():
+    log = '<13>1 2026-03-16T07:25:21+01:00 fw hostwatch 53663 - [meta sequenceId="1"]   2026-03-16T06:25:21.763693Z  INFO hostwatch: new station host 38:ba:f8:d8:d9:2a using 192.168.178.130 at vtnet3'
+    out = hostwatch_parser.parse(log)
+    assert out["service"] == "hostwatch"
+    assert out["log_type"] == "new_station"
+    assert out["ip"] == "192.168.178.130"
+
+
 def test_firewall_parser_dns_not_exists():
     log = '<163>1 2026-03-09T19:04:00+01:00 fw firewall 76807 - [meta sequenceId="1"] The DNS query name does not exist: hub.docker.io. [for allowed_default_hosts]'
     out = firewall_parser.parse(log)
@@ -102,6 +111,50 @@ def test_firewall_parser_resolving():
     assert out["service"] == "firewall"
     assert out["log_type"] == "alias_resolving"
     assert out["hostnames"] == "17"
+
+
+def test_firewall_parser_alias_fetch_and_errors():
+    fetch = '<165>1 2026-03-16T02:29:00+01:00 fw firewall 81227 - [meta sequenceId="1"] fetch alias url https://ip-list.zigpos.com/allowed-ips-table.txt (lines: 31)'
+    processing = '<165>1 2026-03-16T02:29:00+01:00 fw firewall 81227 - [meta sequenceId="1"] processing alias url https://ip-list.zigpos.com/allowed-ips-table.txt took 0.00s'
+    err = '<163>1 2026-03-16T00:55:00+01:00 fw firewall 65115 - [meta sequenceId="1"] error fetching alias url https://talosintelligence.com/documents/ip-blacklist [http_code:404]'
+    resolve_err = '<163>1 2026-03-16T00:55:00+01:00 fw firewall 65115 - [meta sequenceId="1"] alias resolve error blocked_ips_table_list (error fetching alias url https://talosintelligence.com/documents/ip-blacklist)'
+
+    out_fetch = firewall_parser.parse(fetch)
+    out_processing = firewall_parser.parse(processing)
+    out_err = firewall_parser.parse(err)
+    out_resolve_err = firewall_parser.parse(resolve_err)
+
+    assert out_fetch["log_type"] == "alias_fetch"
+    assert out_fetch["lines"] == "31"
+    assert out_processing["log_type"] == "alias_processing"
+    assert out_err["log_type"] == "alias_fetch_error"
+    assert out_resolve_err["log_type"] == "alias_resolve_error"
+
+
+def test_lighttpd_parser_http2_pri_request():
+    from parsers import lighttpd_parser
+
+    log = '<30>1 2026-03-16T11:18:16+01:00 fw lighttpd 51731 - [meta sequenceId="1"] 192.168.4.109 - - [16/Mar/2026:11:18:16 +0100] "PRI * HTTP/2.0" 100 - "-" "-"'
+    out = lighttpd_parser.parse(log)
+    assert out["service"] == "lighttpd"
+    assert out["method"] == "PRI"
+    assert out["path"] == "*"
+    assert out["protocol"] == "HTTP/2.0"
+
+
+def test_cron_parser_mail_log():
+    log = '<78>1 2026-03-16T03:55:32+01:00 fw /usr/sbin/cron 95860 - [meta sequenceId="1"] (root) MAIL (mailed 328 bytes of output but got status 0x0001'
+    out = cron_parser.parse(log)
+    assert out["service"] == "cron"
+    assert out["log_type"] == "mail"
+    assert out["user"] == "root"
+
+
+def test_qemu_ga_parser():
+    log = '<14>1 2026-03-15T20:00:02+01:00 fw qemu-ga 50065 - [meta sequenceId="1"] info: guest-ping called'
+    out = qemu_ga_parser.parse(log)
+    assert out["service"] == "qemu-ga"
+    assert out["log_type"] == "info"
 
 
 def test_parser_returns_none_for_invalid_log():

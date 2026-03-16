@@ -6,7 +6,7 @@ FILTERLOG_PATTERN = re.compile(
     r'(?P<rulenumber>\d+),,,(?P<uuid>[0-9a-fA-F]+),'
     r'(?P<interface>\S+),(?P<reason>\S*),(?P<action>\S*),'
     r'(?P<direction>\S+),(?P<ipversion>\d+),'
-    r'(?P<tclass>[^,]*)(?:,,)?\s?'
+    r'(?P<tclass>[^,]*),(?P<ecn>[^,]*),'
     r'(?P<ttl>\d+),(?P<ident>\d+),0,(?P<flags>\S*),'
     r'(?P<proto_num>\d+),(?P<proto>\S+),(?P<protolength>\d+),'
     r'(?P<src_ip>\d+\.\d+\.\d+\.\d+),(?P<dst_ip>\d+\.\d+\.\d+\.\d+),'
@@ -32,6 +32,7 @@ def parse(log):
         'direction': match.group('direction'),
         'ipversion': match.group('ipversion'),
         'tclass': match.group('tclass'),
+        'ecn': match.group('ecn'),
         'ttl': match.group('ttl'),
         'ident': match.group('ident'),
         'flags': match.group('flags'),

@@ -10,7 +10,9 @@ DHC_REQUEST_PATTERN = re.compile(
     r"<\d+>1 (?P<timestamp>[\d\-T\:\+\.\:]+) (?P<hostname>[\w\-\.]+) .* DHCPREQUEST for (?P<ip>\d+\.\d+\.\d+\.\d+)( \(\d+\.\d+\.\d+\.\d+\))? from (?P<mac>[0-9a-f:]+)( \((?P<client_hostname>.+?)\))? via (?P<interface>\w+)"
 )
 DHC_ACK_PATTERN = re.compile(
-    r"<\d+>1 (?P<timestamp>[\d\-T\:\+\.\:]+) (?P<hostname>[\w\-\.]+) .* DHCPACK on (?P<ip>\d+\.\d+\.\d+\.\d+) to (?P<mac>[0-9a-f:]+)( \((?P<client_hostname>.+?)\))? via (?P<interface>\w+)"
+    r"<\d+>1 (?P<timestamp>[\d\-T\:\+\.\:]+) (?P<hostname>[\w\-\.]+) .* "
+    r"DHCPACK (?:(?:on (?P<ip_on>\d+\.\d+\.\d+\.\d+) to)|(?:to (?P<ip_to>\d+\.\d+\.\d+\.\d+))) "
+    r"\(?(?P<mac>[0-9a-f:]+)\)?( \((?P<client_hostname>.+?)\))? via (?P<interface>\w+)"
 )
 DHC_RELEASE_PATTERN = re.compile(
     r"<\d+>1 (?P<timestamp>[\d\-T\:\+\.\:]+) (?P<hostname>[\w\-\.]+) .* DHCPRELEASE of (?P<ip>\d+\.\d+\.\d+\.\d+) from (?P<mac>[0-9a-f:]+)( \((?P<client_hostname>.+?)\))? via (?P<interface>\w+) \(found\)"
@@ -91,11 +93,12 @@ def parse_dhcpack(line):
     match = DHC_ACK_PATTERN.search(line)
     if not match:
         return None
+    ip = match.group('ip_on') or match.group('ip_to')
     result = _base(match)
     result.update(
         {
             'type': 'dhcpack',
-            'ip': match.group('ip'),
+            'ip': ip,
             'mac': match.group('mac'),
             'client_hostname': match.group('client_hostname') if match.group('client_hostname') else None,
             'interface': match.group('interface'),

@@ -27,6 +27,14 @@ def test_parse_dhcpack():
     assert out["type"] == "dhcpack"
 
 
+def test_parse_dhcpack_to_variant():
+    log = '<190>1 2026-03-16T03:29:00+01:00 fw dhcpd 34015 - [meta sequenceId="1"] DHCPACK to 192.168.4.205 (78:2b:46:7b:f2:9b) via vtnet3'
+    out = dhcpd_parser.parse(log)
+    assert out["type"] == "dhcpack"
+    assert out["ip"] == "192.168.4.205"
+    assert out["mac"] == "78:2b:46:7b:f2:9b"
+
+
 def test_parse_dhcprelease():
     log = '<134>1 2024-05-28T16:39:59+02:00 fw dhcpd 1 - [meta sequenceId="1"] DHCPRELEASE of 10.0.0.10 from aa:bb:cc:dd:ee:ff via em0 (found)'
     out = dhcpd_parser.parse(log)

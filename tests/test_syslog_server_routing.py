@@ -17,6 +17,13 @@ def test_process_log_no_parser():
     assert server.process_log("unknown log") is None
 
 
+def test_process_log_orphan_parenthesis_is_ignored():
+    server = SyslogServer("127.0.0.1", 0, False, "", 10, 1, 1)
+    failed_before = server.FAILED_LOGS._value.get()
+    assert server.process_log(")") is None
+    assert server.FAILED_LOGS._value.get() == failed_before
+
+
 def test_process_log_debug_is_silently_dropped():
     server = SyslogServer("127.0.0.1", 0, False, "", 10, 1, 1)
     failed_before = server.FAILED_LOGS._value.get()
@@ -62,3 +69,14 @@ def test_queue_full_metric_increments_on_drop():
     assert server.RECEIVED_LOGS._value.get() == received_before + 1
     assert server.FAILED_LOGS._value.get() == failed_before + 1
     assert server.DROPPED_QUEUE_FULL_LOGS._value.get() == before + 1
+
+
+def test_process_log_qemuga_route(monkeypatch):
+    server = SyslogServer("127.0.0.1", 0, False, "", 10, 1, 1)
+
+    from parsers import qemu_ga_parser
+
+    monkeypatch.setattr(qemu_ga_parser, "parse", lambda _: {"service": "qemu-ga", "hostname": "fw", "message": "guest-ping called"})
+
+    out = server.process_log('<14>1 2026-03-15T20:00:02+01:00 fw qemu-ga 50065 - [meta sequenceId="1"] info: guest-ping called')
+    assert out["service"] == "qemu-ga"

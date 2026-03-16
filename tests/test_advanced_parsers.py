@@ -10,6 +10,17 @@ def test_unbound_standard_info_error():
     assert unbound_parser.parse(err)["log_type"] == "error"
 
 
+def test_unbound_error_in_tcp_initial_and_dhcpd_entry_changed():
+    err = '<27>1 2026-03-15T13:17:19+01:00 fw unbound 25238 - [meta sequenceId="1"] [25238:17] error: read (in tcp initial): Connection reset by peer for 100.64.10.26 port 54412'
+    changed = '<165>1 2026-03-16T08:20:51+01:00 fw unbound 26090 - [meta sequenceId="1"] dhcpd entry changed uwes-xps-13-9370.office.zigpos.com @ 192.168.4.232.'
+    out_err = unbound_parser.parse(err)
+    out_changed = unbound_parser.parse(changed)
+    assert out_err["log_type"] == "error"
+    assert out_err["tcp_phase"] == "initial"
+    assert out_changed["log_type"] == "dhcpd_entry_changed"
+    assert out_changed["ip"] == "192.168.4.232"
+
+
 def test_unbound_debug_drop_signature():
     drop = '<31>1 2026-03-09T18:18:39+01:00 fw unbound 1 - [meta sequenceId="1"] [1:a] debug: worker request: max UDP reply size modified (1472 to max-udp-size)'
     keep = '<31>1 2026-03-09T18:18:39+01:00 fw unbound 1 - [meta sequenceId="1"] [1:a] debug: configured stub or forward servers failed -- returning SERVFAIL'
@@ -31,6 +42,15 @@ def test_filterlog_parser_ports_and_length():
     assert out["src_port"] == "45730"
     assert out["dst_port"] == "53"
     assert out["length"] == "49"
+
+
+def test_filterlog_parser_with_ecn_field():
+    log = '<134>1 2026-03-16T10:24:55+01:00 fw filterlog 68352 - [meta sequenceId="1"] 23,,,7ca0bdbea8e636fba2e984923ed67866,vlan06,match,block,in,4,0x3,CE,249,0,0,DF,17,udp,71,54.239.195.95,10.0.2.254,443,4226,51'
+    out = filterlog_parser.parse(log)
+    assert out["service"] == "filterlog"
+    assert out["tclass"] == "0x3"
+    assert out["ecn"] == "CE"
+    assert out["length"] == "51"
 
 
 def test_filterlog_parser_datalength_variant():

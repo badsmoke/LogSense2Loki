@@ -2,8 +2,8 @@ import re
 
 LIGHTTPD_PATTERN = re.compile(
     r'<\d+>1 (?P<timestamp>[\d\-T:+\.]+) (?P<hostname>\S+) lighttpd \d+ - \[[^\]]+\] '
-    r'(?P<client_ip>\d+\.\d+\.\d+\.\d+) (?P<target_host>\S+) - \[(?P<request_time>[^\]]+)\] '
-    r'"(?P<method>\S+) (?P<path>\S+) (?P<protocol>HTTP/\d+\.\d+)" (?P<status_code>\d+) (?P<response_size>\d+) '
+    r'(?P<client_ip>\d+\.\d+\.\d+\.\d+) (?P<target_host>\S+) \S+ \[(?P<request_time>[^\]]+)\] '
+    r'"(?P<method>\S+) (?P<path>\S+) (?P<protocol>HTTP/\d+\.\d+)" (?P<status_code>\d+) (?P<response_size>\d+|-) '
     r'"(?P<referer>[^"]*)" "(?P<user_agent>[^"]*)"'
 )
 
